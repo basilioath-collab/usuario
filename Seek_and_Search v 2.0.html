@@ -1,0 +1,2463 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seek and Search - Controle de Cadastro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SheetJS (XLSX) for Excel/ODS reading (keeps app file:// compatible) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#2563eb',
+                        primaryHover: '#1d4ed8',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        body { 
+            background-color: #f8fafc; 
+            color: #0f172a; 
+            font-family: 'Inter', sans-serif; 
+        }
+        .glass-panel { 
+            background: #ffffff; 
+            border: 1px solid #e2e8f0; 
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+        }
+        .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade { animation: fadeIn 0.4s ease-out forwards; }
+    
+/* ---- FIX: STATUS BADGE (NO BUGGY OVERLAY) ---- */
+.status-pill{display:inline-flex;align-items:center;justify-content:center;min-width:120px;line-height:1; padding:.375rem 1rem; border-radius:.75rem; white-space:nowrap}
+
+/* ---- Multi-select dropdown (checkboxes) ---- */
+.ms-wrap{position:relative}
+.ms-btn{width:100%;display:flex;align-items:center;justify-content:space-between;gap:.5rem;padding:.65rem .75rem;border-radius:.75rem;border:1px solid #e2e8f0;background:#f8fafc;font-size:.75rem}
+.ms-btn:hover{background:#f1f5f9}
+.ms-panel{position:absolute;z-index:50;left:0;right:0;margin-top:.35rem;max-height:220px;overflow:auto;border-radius:.75rem;border:1px solid #e2e8f0;background:#ffffff;box-shadow:0 12px 24px rgba(15,23,42,.12);padding:.5rem;display:none}
+.ms-panel.open{display:block}
+.ms-item{display:flex;align-items:center;gap:.5rem;padding:.35rem .5rem;border-radius:.5rem}
+.ms-item:hover{background:#f8fafc}
+.ms-item input{width:14px;height:14px}
+.ms-small{font-size:10px;color:#94a3b8}
+
+
+/* Hard guarantee for 'hidden' even if Tailwind fails to load */
+.hidden{display:none !important;}
+</style>
+<!-- NOTE: Removed external /index.css to keep this app fully file:// compatible -->
+</head>
+<body class="p-6 lg:p-12 max-w-[1400px] mx-auto pb-40">
+
+    <!-- Header -->
+    <header class="mb-12 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div>
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg">
+                    <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                </div>
+                <h1 class="text-3xl font-black text-slate-900 tracking-tight">Seek and <span class="text-primary italic">Search</span></h1>
+            </div>
+            <p class="text-slate-400 text-sm font-medium mt-1">Controle de Cadastro</p>
+        </div>
+        <div id="header-actions" class="hidden">
+            <button onclick="resetApp()" class="px-6 py-2.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-bold hover:bg-slate-200 transition-all uppercase tracking-widest">Nova Auditoria</button>
+        </div>
+    </header>
+
+    <!-- Upload Section -->
+    <main id="setup-view" class="space-y-12 animate-fade">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Card 1: RH -->
+            <div class="glass-panel rounded-[2.5rem] p-8 flex flex-col h-full">
+                <div class="mb-6">
+                    <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <span class="w-1.5 h-5 bg-primary rounded-full"></span>
+                        1. Base RH
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-1">Nomes oficiais da matriz de pessoal.</p>
+                </div>
+                <div id="container-file-a" class="flex-grow flex flex-col gap-4">
+                    <div onclick="document.getElementById('input-file-a').click()" class="flex-grow border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center p-8 gap-3 cursor-pointer hover:bg-slate-50 hover:border-primary/50 transition-all">
+                        <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                        </div>
+                        <span class="text-[10px] font-bold uppercase text-slate-400">Carregar CSV RH</span>
+                    </div>
+                </div>
+                <input id="input-file-a" type="file" accept=".csv,.txt,.tsv,.xlsx,.xls,.xlsm,.xlsb,.ods" class="hidden" onchange="handleFileChange(event, 'A')">
+            </div>
+
+            <!-- Card 2: Treinamentos -->
+            <div class="glass-panel rounded-[2.5rem] p-8 flex flex-col h-full">
+                <div class="mb-6">
+                    <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <span class="w-1.5 h-5 bg-primary rounded-full"></span>
+                        2. Treinamentos
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-1">Planilhas de presença e procedimentos.</p>
+                </div>
+                <div id="container-files-b" class="flex-grow flex flex-col gap-3 overflow-y-auto max-h-[300px] custom-scrollbar pr-1">
+                    <!-- Dynamic List -->
+                </div>
+                <button onclick="document.getElementById('input-file-b').click()" class="mt-4 w-full py-3 border-2 border-dashed border-slate-200 rounded-xl text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:border-primary hover:text-primary transition-all">+ Adicionar Procedimento</button>
+                <input id="input-file-b" type="file" accept=".csv,.txt,.tsv,.xlsx,.xls,.xlsm,.xlsb,.ods" class="hidden" onchange="handleFileChange(event, 'B')">
+            </div>
+
+            <!-- Card 3: Sistemas -->
+            <div class="glass-panel rounded-[2.5rem] p-8 flex flex-col h-full">
+                <div class="mb-6">
+                    <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+                        <span class="w-1.5 h-5 bg-primary rounded-full"></span>
+                        3. Sistemas
+                    </h3>
+                    <p class="text-xs text-slate-500 mt-1">Usuários/Logins para verificação.</p>
+                </div>
+                <div id="container-file-c" class="flex-grow flex flex-col gap-4">
+                    <div onclick="document.getElementById('input-file-c').click()" class="flex-grow border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center p-8 gap-3 cursor-pointer hover:bg-slate-50 hover:border-primary/50 transition-all">
+                        <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                        </div>
+                        <span class="text-[10px] font-bold uppercase text-slate-400">Carregar CSV Sistema</span>
+                    </div>
+                </div>
+                <input id="input-file-c" type="file" accept=".csv,.txt,.tsv,.xlsx,.xls,.xlsm,.xlsb,.ods" class="hidden" onchange="handleFileChange(event, 'C')">
+            </div>
+        </div>
+
+        <div class="flex justify-center pt-8">
+            <button id="btn-process" onclick="processAudit()" disabled class="px-20 py-5 bg-primary text-white font-black rounded-3xl shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all disabled:opacity-20 disabled:grayscale">
+                PROCESSAR AUDITORIA
+            </button>
+        </div>
+    
+        <div class="flex flex-col items-center justify-center gap-4 pt-6">
+            <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">ou</div>
+            <button type="button" onclick="document.getElementById('input-audit-json-setup').click()"
+                class="px-10 py-4 bg-slate-900 text-white font-black rounded-3xl shadow-xl hover:bg-slate-800 transition-all uppercase tracking-widest text-xs">
+                Carregar Auditoria (JSON)
+            </button>
+            <input id="input-audit-json-setup" type="file" accept=".json" class="hidden" onchange="handleAuditJsonUpload(event)">
+            <p class="text-[11px] text-slate-500 text-center max-w-xl">
+                Reabre uma auditoria salva sem precisar recarregar RH/Treinamentos/Sistema.
+            </p>
+        </div>
+</main>
+
+    <!-- Result View -->
+    <div id="result-view" class="space-y-8 animate-fade" style="display:none">
+        <!-- Stats Dashboard -->
+        <!--
+            Adicionado mais uma coluna para "Ambíguos". Agora o grid utiliza 5 colunas
+            em telas médias e maiores (md:grid-cols-5) para acomodar o novo indicador.
+        -->
+        <div class="grid grid-cols-1 md:grid-cols-5 gap-6">
+            <div id="card-total" role="button" tabindex="0" onclick="setFilter(null)" class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center cursor-pointer hover:shadow-md transition-all">
+                <span class="text-[10px] font-black text-slate-400 uppercase">Total Analisado</span>
+                <span id="stat-total" class="text-4xl font-black text-slate-900">0</span>
+            </div>
+            <div id="card-ok" role="button" tabindex="0" onclick="setFilter('ok')" class="bg-emerald-50 p-6 rounded-3xl border border-emerald-100 flex flex-col items-center cursor-pointer hover:shadow-md transition-all">
+                <span class="text-[10px] font-black text-emerald-600/60 uppercase tracking-widest">Aptos</span>
+                <span id="stat-ok" class="text-4xl font-black text-emerald-600">0</span>
+            </div>
+            <div id="card-warn" role="button" tabindex="0" onclick="setFilter('warn')" class="bg-rose-50 p-6 rounded-3xl border border-rose-100 flex flex-col items-center cursor-pointer hover:shadow-md transition-all">
+                <span class="text-[10px] font-black text-rose-600/60 uppercase tracking-widest">Inaptos</span>
+                <span id="stat-warn" class="text-4xl font-black text-rose-600">0</span>
+            </div>
+            <div id="card-amb" role="button" tabindex="0" onclick="setFilter('amb')" class="bg-purple-50 p-6 rounded-3xl border border-purple-100 flex flex-col items-center cursor-pointer hover:shadow-md transition-all">
+                <span class="text-[10px] font-black text-purple-600/60 uppercase tracking-widest">Ambíguos</span>
+                <span id="stat-amb" class="text-4xl font-black text-purple-600">0</span>
+            </div>
+            <div id="card-err" role="button" tabindex="0" onclick="setFilter('err')" class="bg-blue-50 p-6 rounded-3xl border border-blue-100 flex flex-col items-center cursor-pointer hover:shadow-md transition-all">
+                <span class="text-[10px] font-black text-blue-600/60 uppercase tracking-widest">Não Localizados</span>
+                <span id="stat-err" class="text-4xl font-black text-blue-600">0</span>
+            </div>
+        </div>
+
+        <!-- Dashboard (visão rápida) -->
+        <div id="ss-dashboard" class="mt-2 w-full">
+            <div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-6">
+                <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+                    <div>
+                        <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Dashboard</div>
+                        <h3 class="text-xl font-black text-slate-900 mt-1">Visão rápida da auditoria</h3>
+                        <p class="mt-2 text-[11px] text-slate-500 max-w-[70ch]">
+                            Cobertura de treinamento e distribuição de status. (Tudo local: não envia dados para lugar nenhum.)
+                        </p>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button onclick="exportReportHTML()" class="px-5 py-3 rounded-2xl bg-primary text-white text-xs font-black uppercase tracking-widest hover:bg-primaryHover transition-all">Relatório HTML</button>
+                        <button onclick="saveAuditSnapshot()" class="px-5 py-3 rounded-2xl bg-slate-900 text-white text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all">Salvar Auditoria (JSON)</button>
+                        <button onclick="document.getElementById('input-audit-json').click()" class="px-5 py-3 rounded-2xl bg-slate-100 text-slate-700 text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all">Carregar Auditoria</button>
+                        <input id="input-audit-json" type="file" accept=".json" class="hidden" onchange="handleAuditJsonUpload(event)">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 mt-6">
+                    <div class="lg:col-span-5">
+                        <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Treinamento</div>
+                        <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                            <div class="flex items-center justify-between">
+                                <div class="text-xs font-bold text-slate-700">Cobertura (Apto / com treinamento)</div>
+                                <div id="dash-training-pct" class="text-sm font-black text-slate-900">—</div>
+                            </div>
+                            <div class="mt-3 h-3 w-full bg-white rounded-full border border-slate-200 overflow-hidden">
+                                <div id="dash-training-bar" class="h-full bg-emerald-500" style="width:0%"></div>
+                            </div>
+                            <div class="mt-3 text-[11px] text-slate-500">
+                                <span id="dash-training-detail">—</span>
+                            </div>
+                        </div>
+
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-7">
+                        <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Distribuição de status</div>
+                        <div class="rounded-2xl border border-slate-100 bg-white p-4">
+                            <canvas id="dash-status-chart" height="160" class="w-full"></canvas>
+                            <div class="mt-2 text-[11px] text-slate-500">Clique nos cards acima para filtrar; o gráfico só reflete os totais gerais.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-6 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div class="text-xs font-bold text-slate-700">
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Auditoria</span>
+                            <span id="dash-audit-id" class="ml-2 font-mono text-slate-700">—</span>
+                        </div>
+                        <button onclick="openReviewHistory()" class="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-black hover:bg-slate-100 transition-all">
+                            Histórico de revisões
+                        </button>
+                    </div>
+                    <p class="mt-2 text-[11px] text-slate-500">O histórico registra cada decisão manual (quem/quando/o quê) dentro desta auditoria.</p>
+                </div>
+            </div>
+        </div>
+        <div id="filter-bar" class="mt-4 hidden">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-slate-50 border border-slate-100 rounded-2xl p-4">
+                <div class="flex items-center gap-3">
+                    <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filtro ativo</span>
+                    <span id="filter-badge" class="px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest bg-slate-200 text-slate-700">—</span>
+                    <span id="filter-count" class="text-xs font-bold text-slate-500"></span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="clearFilter()" class="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-black hover:bg-slate-100 transition-all">Limpar filtro</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtros por Status (apenas visualização do relatório) -->
+        <div id="status-filter-panel" class="mt-4">
+            <div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-6">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
+                    <div class="lg:col-span-5">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filtro: Status SS</label>
+                        <select id="filter-status-ss" onchange="onStatusFiltersChange()" class="mt-2 w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/20">
+                            <option value="__ALL__">Todos</option>
+                        </select>
+                    </div>
+                    <div class="lg:col-span-5">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filtro: Status Sistema</label>
+                        <select id="filter-status-sistema" onchange="onStatusFiltersChange()" class="mt-2 w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/20">
+                            <option value="__ALL__">Todos</option>
+                        </select>
+                    </div>
+                    <div class="lg:col-span-2 flex items-end justify-between lg:justify-end gap-3">
+                        <div class="text-[11px] font-bold text-slate-500 whitespace-nowrap">
+                            <span id="status-filter-count">Exibindo 0 de 0</span>
+                        </div>
+                        <button onclick="clearStatusFilters()" class="px-6 py-3 rounded-2xl bg-slate-100 text-slate-700 text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all">Limpar filtros</button>
+                    </div>
+                </div>
+                <p class="mt-3 text-[11px] text-slate-500">Os filtros acima são apenas para visualização do relatório (não alteram o processamento da auditoria).</p>
+            </div>
+        </div>
+
+        <!-- Análise Pontual -->
+        <div class="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm p-6">
+            <div class="flex flex-col lg:flex-row lg:items-end gap-4">
+                <div class="flex-1">
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Análise pontual (1 usuário)</label>
+                    <input id="single-input" type="text" placeholder="Ex.: Arthur Basílio Gomides da Costa  |  arthur.b.costa"
+                           class="mt-2 w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/20" />
+                    <p class="mt-2 text-[11px] text-slate-500">Use para testar um nome completo ou um login tokenizado. Requer que a auditoria já tenha sido processada (RH + Treinamentos carregados).</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="analyzeSingle()" class="px-6 py-3 rounded-2xl bg-primary text-white text-xs font-black uppercase tracking-widest hover:bg-primaryHover transition-all">Analisar</button>
+                    <button onclick="clearSingleAnalysis()" class="px-6 py-3 rounded-2xl bg-slate-100 text-slate-700 text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all">Limpar</button>
+                </div>
+            </div>
+            <div id="single-result" class="hidden mt-5">
+                <div class="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Resultado</span>
+                            <span id="single-status" class="status-pill text-[9px] font-black uppercase tracking-widest bg-slate-900 text-white">—</span>
+                        </div>
+                        <div class="text-xs font-bold text-slate-600">
+                            <span id="single-mapped">—</span>
+                        </div>
+                    </div>
+                    <div class="mt-3 flex items-start gap-2">
+                        <div id="single-dot" class="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 bg-slate-500"></div>
+                        <span id="single-just" class="text-[11px] font-medium text-slate-600 leading-relaxed">—</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="bg-white rounded-[2.5rem] overflow-hidden border border-slate-100 shadow-2xl">
+            <div class="overflow-x-auto custom-scrollbar">
+                <table class="w-full text-left text-sm border-collapse">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                            <th class="p-6">Login (Sistema)</th>
+                            <th class="p-6">Nome Mapeado (RH)</th>
+                            <th class="p-6">Status SS</th>
+                            <th class="p-6">Status Sistema</th>
+                            <th class="p-6">Status</th>
+                            <th class="p-6">Justificativa / Procedimento</th>
+                            <th class="p-6">Revisão</th>
+</tr>
+                    </thead>
+                    <tbody id="result-tbody" class="divide-y divide-slate-50">
+                        <!-- Dynamic Rows -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        
+        <div class="flex justify-center gap-3 flex-wrap">
+            <button onclick="exportCSV()" class="px-8 py-4 bg-slate-900 text-white font-bold rounded-2xl hover:bg-slate-800 transition-all flex items-center gap-3 shadow-xl">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" strokeWidth="2" d="M4 16v1a2 2 0 002 2h12a2 2 0 002-2v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                Exportar CSV
+            </button>
+            <button onclick="exportReviewHistoryCSV()" class="px-8 py-4 bg-slate-100 text-slate-800 font-black rounded-2xl hover:bg-slate-200 transition-all shadow-sm">
+                Exportar Histórico (CSV)
+            </button>
+            <button onclick="window.print()" class="px-8 py-4 bg-white border border-slate-200 text-slate-700 font-black rounded-2xl hover:bg-slate-50 transition-all shadow-sm">
+                Imprimir / PDF
+            </button>
+        </div>
+
+    <!-- Review Modal (Revisão Manual Pós-Avaliação) -->
+    <div id="review-modal" class="hidden fixed inset-0 z-[9999] flex items-start sm:items-center justify-center p-4 sm:p-6">
+        <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm z-[0]" onclick="closeReviewModal()"></div>
+        <div class="relative z-[10] w-full max-w-2xl">
+            <div class="bg-white rounded-[2rem] border border-slate-100 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+                <div class="p-6 border-b border-slate-100 flex items-start justify-between gap-4">
+                    <div>
+                        <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Revisão</div>
+                        <h3 id="review-title" class="text-xl font-black text-slate-900 mt-1">Revisar Resultado</h3>
+                        <div class="mt-2 text-xs text-slate-600">
+                            <span class="font-black text-slate-400 uppercase tracking-widest text-[10px]">Login:</span>
+                            <span id="review-login" class="font-mono font-bold text-slate-700 ml-2">—</span>
+                        </div>
+                    </div>
+                    <button class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 font-black hover:bg-slate-200" onclick="closeReviewModal()">✕</button>
+                </div>
+
+                <div class="p-6 space-y-5 overflow-y-auto flex-1">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Status final</label>
+                            <select id="review-status" class="mt-2 w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/20">
+                                <option>Apto</option>
+                                <option>Inapto</option>
+                                <option>Login Ambíguo</option>
+                                <option>Não Localizado</option>
+                            </select>
+                        </div>
+
+                        <div id="review-candidates-wrap" class="hidden">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Candidatos (RH)</label>
+                            <select id="review-candidates" onchange="onCandidatePick(this.value)" class="mt-2 w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/20">
+                                <option value="">—</option>
+                            </select>
+                            <p class="mt-1 text-[11px] text-slate-500">Selecione um candidato para preencher o “Nome mapeado”.</p>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nome mapeado (pós-revisão)</label>
+                        <input id="review-name" type="text" placeholder="Ex.: João da Silva" class="mt-2 w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/20" />
+                        <p class="mt-2 text-[11px] text-slate-500">Não altera o arquivo RH; apenas registra a decisão final nesta auditoria.</p>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Justificativa (obrigatória)</label>
+                        <textarea id="review-just" rows="4" placeholder="Descreva o motivo da decisão manual (ex.: verificação em sistema, evidência, e-mail, etc.)" class="mt-2 w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 text-sm font-semibold outline-none focus:ring-2 focus:ring-primary/20"></textarea>
+                    </div>
+
+                    <div class="rounded-2xl border border-slate-100 bg-slate-50 p-4">
+                        <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Observação</div>
+                        <p id="review-meta" class="mt-2 text-[11px] text-slate-600 leading-relaxed">—</p>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2">
+                        <button id="review-remove" class="hidden px-6 py-3 rounded-2xl bg-rose-50 text-rose-700 text-xs font-black uppercase tracking-widest hover:bg-rose-100 transition-all" onclick="removeReview()">Remover decisão</button>
+                        <div class="flex gap-2 sm:justify-end">
+                            <button class="px-6 py-3 rounded-2xl bg-slate-100 text-slate-700 text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-all" onclick="closeReviewModal()">Cancelar</button>
+                            <button class="px-6 py-3 rounded-2xl bg-primary text-white text-xs font-black uppercase tracking-widest hover:bg-primaryHover transition-all" onclick="saveReview()">Salvar decisão</button>
+                        </div>
+                    </div>
+                </div>
+
+</div>
+        </div>
+    </div>
+
+<script>
+        // --- GLOBAL STATE ---
+        let state = {
+            fileA: null, // { fileName, headers, rows, primaryIdxs: [0] }
+            filesB: [],  // [ { id, fileName, headers, rows, primaryIdxs: [0] } ]
+            fileC: null, // { fileName, headers, rows, primaryIdxs: [0] }
+            results: [],
+            activeFilter: null, // null = sem filtro; 'ok'|'warn'|'amb'|'err'
+            // Filtros (apenas visualização do relatório)
+            filterStatusSS: '__ALL__',
+            filterStatusSistema: '__ALL__',
+            auditCache: null,
+                auditId: null,
+                overrides: {},
+                reviewHistory: [],
+                auditProcessed: false,  // { fullNameIndex, firstNameIndex, trainingMap }
+            auditId: null,
+            overrides: {},
+            reviewHistory: [],
+            auditProcessed: false
+        };
+
+        // --- CORE LOGIC ---
+        const STOPWORDS = new Set(["de", "da", "do", "das", "dos", "e", "du", "del", "d'", "d"]);
+
+        function escapeHtml(str) {
+            return (str ?? '').toString()
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function toKey(s) {
+            return (s || "").toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
+        }
+
+        function splitIntoParts(name) {
+            return toKey(name).split(/[^a-z0-9]/).filter(x => x && !STOPWORDS.has(x));
+        }
+
+        /**
+         * Normaliza uma string removendo acentos, convertendo para minúsculas e
+         * colapsando espaços. Utiliza a mesma implementação de toKey para
+         * manter consistência em toda a aplicação.
+         * @param {string} s
+         * @returns {string}
+         */
+        function normalizeText(s) {
+            return toKey(s);
+        }
+
+        /**
+         * Converte um nome ou login em tokens significativos. Os tokens são
+         * extraídos a partir de qualquer separador não alfanumérico (ex.: '.', '-', ' ').
+         * Stopwords comuns em português são removidas. Os tokens retornados
+         * aparecem em ordem e em minúsculas.
+         * @param {string} s
+         * @returns {string[]}
+         */
+        function tokenizeName(s) {
+            return splitIntoParts(s);
+        }
+
+        // --- OVERRIDES (REVISÃO MANUAL) ---
+        function simpleHash(str) {
+            // FNV-1a (32-bit)
+            let h = 0x811c9dc5;
+            for (let i = 0; i < str.length; i++) {
+                h ^= str.charCodeAt(i);
+                h = (h + ((h << 1) + (h << 4) + (h << 7) + (h << 8) + (h << 24))) >>> 0;
+            }
+            return ('00000000' + h.toString(16)).slice(-8);
+        }
+
+        function computeAuditId() {
+            const a = state.fileA ? `${state.fileA.fileName}|${(state.fileA.primaryIdxs||[]).join(',')}|cargo:${state.fileA.cargoIdx||''}` : 'A:none';
+            const c = state.fileC ? `${state.fileC.fileName}|${(state.fileC.primaryIdxs||[]).join(',')}|sys:${state.fileC.statusSysIdx||''}` : 'C:none';
+            const b = (state.filesB||[]).map(f => `${f.fileName}|${(f.primaryIdxs||[]).join(',')}`).join('||') || 'B:none';
+            const seed = `seeksearch|v2|${a}||${b}||${c}`;
+            return 'AUD-' + simpleHash(seed);
+        }
+
+        function getRowKey(resultRow) {
+            // Usa linha do arquivo de Sistema (C) como chave estável dentro da auditoria
+            const cRow = resultRow && resultRow._cRow ? String(resultRow._cRow) : (resultRow && resultRow.login ? normalizeText(resultRow.login) : 'row');
+            return `${state.auditId || 'AUD'}::${cRow}`;
+        }
+
+        function loadOverrides(auditId) {
+            try {
+                const raw = localStorage.getItem(`seeksearch_overrides__${auditId}`);
+                if (!raw) return {};
+                const obj = JSON.parse(raw);
+                return (obj && typeof obj === 'object') ? obj : {};
+            } catch (_) { return {}; }
+        }
+
+        function saveOverrides(auditId, overrides) {
+            try {
+                localStorage.setItem(`seeksearch_overrides__${auditId}`, JSON.stringify(overrides || {}));
+            } catch (_) {}
+        }
+
+        function applyOverridesToResults() {
+            const ov = state.overrides || {};
+            (state.results || []).forEach(r => {
+                const key = r._rowKey || getRowKey(r);
+                r._rowKey = key;
+                const o = ov[key];
+                if (!o) return;
+                // Aplica override (camada de revisão) sem destruir referência do bruto
+                r.tag = o.tag ?? r.tag;
+                r.status = o.status ?? r.status;
+                r.statusSS = o.statusSS ?? r.statusSS;
+                r.statusSistema = (typeof o.statusSistema !== 'undefined') ? o.statusSistema : r.statusSistema;
+                r.nomeMapeado = o.nomeMapeado ?? r.nomeMapeado;
+                r.justificativa = o.justificativa ?? r.justificativa;
+                r._manual = true;
+                r._review = { by: o.by || 'Manual', at: o.at || null };
+            });
+        }
+
+        function updateStats() {
+            const total = (state.results || []).length;
+            const ok = (state.results || []).filter(r => r.tag === 'ok').length;
+            const warn = (state.results || []).filter(r => r.tag === 'warn').length;
+            const amb = (state.results || []).filter(r => r.tag === 'amb').length;
+            const err = (state.results || []).filter(r => r.tag === 'err').length;
+
+            const sTotal = document.getElementById('stat-total');
+            const sOk = document.getElementById('stat-ok');
+            const sWarn = document.getElementById('stat-warn');
+            const sAmb = document.getElementById('stat-amb');
+            const sErr = document.getElementById('stat-err');
+            if (sTotal) sTotal.innerText = total;
+            if (sOk) sOk.innerText = ok;
+            if (sWarn) sWarn.innerText = warn;
+            if (sAmb) sAmb.innerText = amb;
+            if (sErr) sErr.innerText = err;
+        }
+
+        function tagToLabel(tag) {
+            if (tag === 'ok') return 'Apto';
+            if (tag === 'warn') return 'Inapto';
+            if (tag === 'amb') return 'Login Ambíguo';
+            return 'Não Localizado';
+        }
+
+        function labelToTag(label) {
+            const v = (label || '').toString().trim().toLowerCase();
+            if (v === 'apto') return 'ok';
+            if (v === 'inapto') return 'warn';
+            if (v.includes('amb')) return 'amb';
+            if (v.includes('não') || v.includes('nao') || v.includes('local')) return 'err';
+            return 'amb';
+        }
+
+        function openReviewModal(rowKey) {
+            const r = (state.results || []).find(x => x._rowKey === rowKey);
+            if (!r) return;
+
+            const modal = document.getElementById('review-modal');
+            const title = document.getElementById('review-title');
+            const login = document.getElementById('review-login');
+            const statusSel = document.getElementById('review-status');
+            const nameSelWrap = document.getElementById('review-candidates-wrap');
+            const nameSel = document.getElementById('review-candidates');
+            const nameInput = document.getElementById('review-name');
+            const just = document.getElementById('review-just');
+            const meta = document.getElementById('review-meta');
+            const btnRemove = document.getElementById('review-remove');
+
+            if (!modal || !statusSel || !nameInput || !just) return;
+
+            state._editingRowKey = rowKey;
+
+            title.innerText = (r._manual ? 'Editar Revisão' : 'Revisar Resultado');
+            login.innerText = r.login || '—';
+
+            // Status options
+            const currentLabel = r.status || tagToLabel(r.tag);
+            statusSel.value = currentLabel;
+
+            // Candidates (se existir)
+            const cands = Array.isArray(r.candidates) ? r.candidates : [];
+            if (cands.length) {
+                nameSelWrap.classList.remove('hidden');
+                nameSel.innerHTML = `<option value="">— selecionar candidato do RH —</option>` + cands.map(c => {
+                    const lbl = `${c.fullName} (linha ${c.row})`;
+                    return `<option value="${escapeHtml(c.fullName)}">${escapeHtml(lbl)}</option>`;
+                }).join('');
+            } else {
+                nameSelWrap.classList.add('hidden');
+                nameSel.innerHTML = '';
+            }
+
+            nameInput.value = (r.nomeMapeado && r.nomeMapeado !== '—') ? r.nomeMapeado : '';
+            just.value = (r._manual && r.justificativa) ? r.justificativa : '';
+
+            const hasOverride = !!(state.overrides && state.overrides[rowKey]);
+            btnRemove.classList.toggle('hidden', !hasOverride);
+
+            const at = r._review && r._review.at ? new Date(r._review.at) : null;
+            meta.innerText = hasOverride
+                ? `Decisão manual salva${at ? ' em ' + at.toLocaleString('pt-BR') : ''}.`
+                : `Sugestão automática: ${r.status || tagToLabel(r.tag)}.`;
+
+            modal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+        }
+
+        function closeReviewModal() {
+            const modal = document.getElementById('review-modal');
+            if (modal) modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+            state._editingRowKey = null;
+        }
+
+        function onCandidatePick(val) {
+            const nameInput = document.getElementById('review-name');
+            if (nameInput && val) nameInput.value = val;
+        }
+
+        function saveReview() {
+            const rowKey = state._editingRowKey;
+            if (!rowKey) return;
+
+            const r = (state.results || []).find(x => x._rowKey === rowKey);
+            if (!r) return;
+
+            const statusSel = document.getElementById('review-status');
+            const nameInput = document.getElementById('review-name');
+            const just = document.getElementById('review-just');
+            if (!statusSel || !nameInput || !just) return;
+
+            const statusLabel = statusSel.value;
+            const nome = (nameInput.value || '').trim() || '—';
+            const justificativa = (just.value || '').trim();
+            if (!justificativa) return alert('Informe uma justificativa para salvar a revisão.');
+
+            const tag = labelToTag(statusLabel);
+            const now = new Date().toISOString();
+
+            // salvar override
+            state.overrides = state.overrides || {};
+            state.overrides[rowKey] = {
+                tag,
+                status: statusLabel,
+                statusSS: statusLabel,
+                nomeMapeado: nome,
+                justificativa,
+                by: 'Manual',
+                at: now
+            };
+            saveOverrides(state.auditId, state.overrides);
+
+            // aplicar imediatamente na linha
+            r.tag = tag;
+            r.status = statusLabel;
+            r.statusSS = statusLabel;
+            r.nomeMapeado = nome;
+            r.justificativa = justificativa;
+            r._manual = true;
+            r._review = { by: 'Manual', at: now };
+
+            updateStats();
+            hydrateStatusFilterOptions();
+            renderFilteredTable();
+            closeReviewModal();
+        }
+
+        function removeReview() {
+            const rowKey = state._editingRowKey;
+            if (!rowKey) return;
+
+            if (!confirm('Remover a decisão manual e voltar para o resultado automático?')) return;
+
+            // Para reverter, precisamos reprocessar a auditoria (mais seguro).
+            // Aqui fazemos o caminho simples: remove override e reprocessa tudo com os mesmos arquivos já carregados.
+            if (state.overrides) {
+                delete state.overrides[rowKey];
+                saveOverrides(state.auditId, state.overrides);
+            }
+            // Reprocessa para recalcular o automático
+            processAudit();
+            closeReviewModal();
+        }
+
+
+        /**
+         * Detecta automaticamente a coluna "Cargo" (ou sinônimos) na Base RH.
+         * Não aparece na UI; serve apenas para exportação.
+         * @param {string[]} headers
+         * @returns {string} índice (string) ou '' se não encontrado
+         */
+        
+        /**
+         * Detecta automaticamente a(s) coluna(s) mais prováveis para Nome/Login,
+         * para evitar que o padrão [0] (ex.: matrícula) quebre o matching.
+         * Heurística por nome de header.
+         * @param {string[]} headers
+         * @param {'RH'|'TREIN'|'SIST'} kind
+         * @returns {string[]} índices (strings)
+         */
+        function detectPrimaryIdxs(headers, kind) {
+            const hs = Array.isArray(headers) ? headers : [];
+            const norm = (s) => normalizeText(String(s || ''));
+            const keys = hs.map(h => norm(h));
+
+            const pickFirst = (cands) => {
+                for (const c of cands) {
+                    const idx = keys.findIndex(k => k === c);
+                    if (idx >= 0) return [String(idx)];
+                }
+                for (const c of cands) {
+                    const idx = keys.findIndex(k => k && k.includes(c));
+                    if (idx >= 0) return [String(idx)];
+                }
+                return [];
+            };
+
+            // Preferências por tipo
+            if (kind === 'SIST') {
+                const prefs = ['login','usuario','usuário','user','username','account','conta'].map(norm);
+                return pickFirst(prefs);
+            }
+            // RH / Treinamentos: "Nome" ganha
+            const prefs = ['nome completo','nome','colaborador','funcionario','funcionário','empregado','employee','full name','fullname','name'].map(norm);
+            return pickFirst(prefs);
+        }
+
+        /**
+         * Validação simples: se o índice do RH não parece conter nomes, bloqueia processamento
+         * e orienta o usuário a selecionar a coluna correta.
+         */
+        function validateRHIndex(firstNameIndex) {
+            const size = firstNameIndex ? firstNameIndex.size : 0;
+            // se quase não há primeiros nomes, é forte sinal de coluna errada (matrícula/código)
+            return size >= 5;
+        }
+function detectCargoIdx(headers) {
+            const hs = Array.isArray(headers) ? headers : [];
+            const norm = (s) => normalizeText(String(s || ''));
+            const keys = hs.map(h => norm(h));
+
+            // Preferências (ordem importa)
+            const prefer = [
+                'cargo',
+                'função',
+                'funcao',
+                'posição',
+                'posicao',
+                'job title',
+                'jobtitle',
+                'title',
+                'role',
+                'position'
+            ].map(norm);
+
+            // 1) match exato por preferência
+            for (let p of prefer) {
+                const idx = keys.findIndex(k => k === p);
+                if (idx >= 0) return String(idx);
+            }
+
+            // 2) match por "contém" (mais permissivo)
+            const containsOrder = ['cargo', 'funcao', 'função', 'posicao', 'posição', 'job', 'title', 'role', 'position'].map(norm);
+            for (let t of containsOrder) {
+                const idx = keys.findIndex(k => k && k.includes(t));
+                if (idx >= 0) return String(idx);
+            }
+
+            return '';
+        }
+
+        /**
+         * Combina múltiplas colunas selecionadas em uma única string (separada por espaço),
+         * removendo vazios. Usado para montar o nome/login a partir de mais de uma coluna.
+         */
+        function getCombinedValue(row, idxs) {
+            const arr = Array.isArray(idxs) && idxs.length ? idxs : ['0'];
+            return arr.map(i => (row && row[Number(i)] != null ? String(row[Number(i)]) : '').trim())
+                      .filter(Boolean)
+                      .join(' ')
+                      .trim();
+        }
+
+
+        /**
+         * Retorna valor simples de uma coluna (idx) em uma linha.
+         */
+        function getValue(row, idx) {
+            if (idx == null || idx === '' || Number.isNaN(Number(idx))) return '';
+            return (row && row[Number(idx)] != null) ? String(row[Number(idx)]).trim() : '';
+        }
+
+        /**
+         * Cria um dropdown multi-seleção com checkboxes.
+         * @param {string} mountId - elemento onde será renderizado
+         * @param {string[]} labels - nomes das colunas
+         * @param {string[]} selected - índices selecionados (strings)
+         * @param {(newSelected:string[])=>void} onChange
+         */
+        // --- Multi-select dropdown (portal) ---
+// Renderiza o painel no <body> (position: fixed) para não ficar "preso" em containers com overflow/scroll.
+let __msPortal = {
+    openMountId: null,
+    panelEl: null,
+    btnEl: null,
+    onChange: null,
+    labels: null,
+    selected: null
+};
+
+function closeMsPortal() {
+    if (__msPortal && __msPortal.panelEl) {
+        __msPortal.panelEl.remove();
+    }
+    __msPortal.openMountId = null;
+    __msPortal.panelEl = null;
+    __msPortal.btnEl = null;
+    __msPortal.onChange = null;
+    __msPortal.labels = null;
+    __msPortal.selected = null;
+}
+
+function positionMsPortal() {
+    if (!__msPortal.panelEl || !__msPortal.btnEl) return;
+    const rect = __msPortal.btnEl.getBoundingClientRect();
+
+    const panel = __msPortal.panelEl;
+    const margin = 6;
+
+    // Medir altura real do painel
+    panel.style.visibility = 'hidden';
+    panel.style.maxHeight = '220px';
+    panel.style.width = rect.width + 'px';
+    panel.style.left = rect.left + 'px';
+    panel.style.top = (rect.bottom + margin) + 'px';
+    panel.style.display = 'block';
+    const ph = panel.getBoundingClientRect().height;
+    panel.style.visibility = '';
+
+    const spaceBelow = window.innerHeight - rect.bottom - margin;
+    const spaceAbove = rect.top - margin;
+
+    const openUp = (spaceBelow < ph) && (spaceAbove > spaceBelow);
+
+    if (openUp) {
+        const top = Math.max(margin, rect.top - margin - ph);
+        panel.style.top = top + 'px';
+    } else {
+        panel.style.top = (rect.bottom + margin) + 'px';
+    }
+
+    // Evita sair da tela horizontalmente
+    const maxLeft = window.innerWidth - rect.width - margin;
+    const left = Math.min(Math.max(margin, rect.left), maxLeft);
+    panel.style.left = left + 'px';
+}
+
+function buildMsPanelHTML(mountId, labels, selected) {
+    const selSet = new Set((selected || []).map(String));
+    const safe = (s) => escapeHtml(s || '');
+    return `
+        <div class="ms-panel custom-scrollbar open" data-ms-panel="${safe(mountId)}" style="position:fixed; z-index:10000; display:block;">
+            ${labels.map((h, i) => `
+                <label class="ms-item">
+                    <input type="checkbox" value="${i}" ${selSet.has(String(i)) ? 'checked' : ''}>
+                    <span class="text-xs text-slate-700">${safe(h || `Coluna ${i+1}`)}</span>
+                </label>
+            `).join('')}
+            <div class="flex items-center justify-between pt-2">
+                <button type="button" class="text-[10px] font-bold text-slate-500 hover:text-slate-700" data-ms-clear="${safe(mountId)}">Limpar</button>
+                <span class="ms-small">Ctrl/Cmd não necessário</span>
+            </div>
+        </div>
+    `;
+}
+
+function renderMultiSelect(mountId, labels, selected, onChange) {
+    const mount = document.getElementById(mountId);
+    if (!mount) return;
+
+    const selSet = new Set((selected || []).map(String));
+    const title = selSet.size ? `${selSet.size} coluna(s) selecionada(s)` : 'Selecione coluna(s)';
+
+    mount.innerHTML = `
+        <div class="ms-wrap">
+            <button type="button" class="ms-btn" data-ms-btn="${mountId}">
+                <span class="truncate">${escapeHtml(title)}</span>
+                <span class="ms-small">▼</span>
+            </button>
+        </div>
+    `;
+
+    const btn = mount.querySelector(`[data-ms-btn="${mountId}"]`);
+    if (!btn) return;
+
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+
+        // Toggle: se já está aberto nesse mesmo mount, fecha.
+        if (__msPortal.openMountId === mountId) {
+            closeMsPortal();
+            return;
+        }
+
+        closeMsPortal();
+
+        __msPortal.openMountId = mountId;
+        __msPortal.btnEl = btn;
+        __msPortal.onChange = onChange;
+        __msPortal.labels = labels;
+        __msPortal.selected = (selected || []).map(String);
+
+        const wrap = document.createElement('div');
+        wrap.innerHTML = buildMsPanelHTML(mountId, labels, __msPortal.selected);
+        const panel = wrap.firstElementChild;
+        document.body.appendChild(panel);
+        __msPortal.panelEl = panel;
+
+        // Bind change
+        panel.addEventListener('change', () => {
+            const checked = Array.from(panel.querySelectorAll('input[type="checkbox"]:checked')).map(x => String(x.value));
+            onChange(checked);
+            // Atualiza o título e fecha (mais previsível / evita desalinhamento)
+            closeMsPortal();
+            renderMultiSelect(mountId, labels, checked, onChange);
+        });
+
+        // Clear
+        const clearBtn = panel.querySelector(`[data-ms-clear="${mountId}"]`);
+        if (clearBtn) {
+            clearBtn.addEventListener('click', (ev) => {
+                ev.preventDefault();
+                onChange([]);
+                closeMsPortal();
+                renderMultiSelect(mountId, labels, [], onChange);
+            });
+        }
+
+        positionMsPortal();
+    });
+}
+
+// Fecha ao clicar fora + reposiciona em scroll/resize
+document.addEventListener('click', (e) => {
+    const target = e.target;
+    if (!(target instanceof Element)) return;
+
+    // Se clicar dentro do botão ou painel, não fecha
+    if (__msPortal.btnEl && (target === __msPortal.btnEl || target.closest('.ms-btn'))) return;
+    if (__msPortal.panelEl && target.closest('.ms-panel')) return;
+
+    closeMsPortal();
+});
+
+window.addEventListener('scroll', () => {
+    if (__msPortal.panelEl) positionMsPortal();
+}, true);
+
+window.addEventListener('resize', () => {
+    if (__msPortal.panelEl) positionMsPortal();
+});
+
+
+        /**
+         * Heurística simples para detectar se uma entrada provavelmente é um
+         * nome completo em vez de um login abreviado. Considera como nome completo
+         * se houver pelo menos um espaço e pelo menos dois tokens (palavras)
+         * com tamanho igual ou superior a 2 caracteres.
+         * @param {string} s
+         * @returns {boolean}
+         */
+        function isLikelyFullName(s) {
+            if (!s) return false;
+            const trimmed = s.trim();
+            // Se parece login (separadores típicos), não tratar como nome completo
+            if (/[._-]/.test(trimmed)) return false;
+
+            // Usa tokenização real (remove acentos/stopwords) e evita classificar como nome completo
+            // quando houver iniciais (tokens de 1 letra), pois isso tende a representar login tokenizado
+            const toks = tokenizeName(trimmed);
+            if (toks.some(t => t.length === 1)) return false;
+
+            // Nome completo: contém espaço e possui pelo menos 2 tokens "de verdade"
+            return trimmed.includes(' ') && toks.length >= 2;
+        }
+
+        function parseCSV(text) {
+            let cleanText = text.trim();
+            if (cleanText.charCodeAt(0) === 0xFEFF) cleanText = cleanText.slice(1);
+            const lines = cleanText.split(/\r?\n/).filter(l => l.trim());
+            if (lines.length === 0) return [];
+            
+            const head = lines[0];
+            const candidates = [',', ';', '\t'];
+            let bestDelim = ',';
+            let maxCount = -1;
+            candidates.forEach(c => {
+                const count = head.split(c).length;
+                if (count > maxCount) { maxCount = count; bestDelim = c; }
+            });
+
+            return lines.map(line => {
+                const row = [];
+                let curr = '', inQuotes = false;
+                for (let i = 0; i < line.length; i++) {
+                    const c = line[i];
+                    if (c === '"') {
+                        if (inQuotes && line[i+1] === '"') { curr += '"'; i++; }
+                        else { inQuotes = !inQuotes; }
+                    } else if (c === bestDelim && !inQuotes) {
+                        row.push(curr); curr = '';
+                    } else {
+                        curr += c;
+                    }
+                }
+                row.push(curr);
+                return row;
+            });
+        }
+
+        // --- FILE PARSING (CSV/TXT/TSV + Excel/ODS) ---
+        function isZipContainer(u8) {
+            // XLSX/XLSM/XLSB/ODS are ZIP containers and start with 'PK'
+            return u8 && u8.length >= 2 && u8[0] === 0x50 && u8[1] === 0x4B;
+        }
+
+        function decodeTextSmart(arrayBuffer) {
+            // Try UTF-8 first; if many replacement chars appear, fallback to Windows-1252
+            const u8 = new Uint8Array(arrayBuffer);
+            let text = new TextDecoder('utf-8', { fatal: false }).decode(u8);
+            const replCount = (text.match(/\uFFFD/g) || []).length;
+            if (replCount > 0) {
+                // If text is short and full of replacement chars, likely wrong decoding
+                const ratio = replCount / Math.max(1, text.length);
+                if (ratio > 0.01) {
+                    try {
+                        text = new TextDecoder('windows-1252', { fatal: false }).decode(u8);
+                    } catch (_) {
+                        // ignore
+                    }
+                }
+            }
+            return text;
+        }
+
+        function parseSpreadsheet(arrayBuffer) {
+            if (typeof XLSX === 'undefined') {
+                throw new Error('Biblioteca XLSX não carregada.');
+            }
+            const u8 = new Uint8Array(arrayBuffer);
+            const wb = XLSX.read(u8, { type: 'array' });
+            const sheetName = wb.SheetNames[0];
+            const sheet = wb.Sheets[sheetName];
+            const aoa = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+            return aoa;
+        }
+
+        async function readAnyTable(file) {
+            // Always read as arrayBuffer first, then decide.
+            const ab = await file.arrayBuffer();
+            const u8 = new Uint8Array(ab);
+            const ext = (file.name.split('.').pop() || '').toLowerCase();
+
+            const looksZip = isZipContainer(u8);
+            const isSpreadsheetByExt = ['xlsx','xls','xlsm','xlsb','ods'].includes(ext);
+
+            if (looksZip || isSpreadsheetByExt) {
+                const aoa = parseSpreadsheet(ab);
+                return aoa;
+            }
+
+            const text = decodeTextSmart(ab);
+            return parseCSV(text);
+        }
+
+        // --- UI HANDLERS ---
+        async function handleFileChange(event, target) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            let data;
+            try {
+                data = await readAnyTable(file);
+            } catch (err) {
+                console.error(err);
+                alert("Não consegui ler esse arquivo. Se for Excel/ODS, confirme que você está online (para carregar a biblioteca XLSX) ou use CSV.");
+                event.target.value = '';
+                return;
+            }
+
+            if (!data || data.length === 0) return alert("Arquivo vazio.");
+
+            // Remove linhas totalmente vazias
+            data = data.filter(r => Array.isArray(r) && r.some(v => String(v ?? '').trim() !== ''));
+            if (data.length === 0) return alert("Arquivo vazio.");
+
+            // Normaliza tamanhos das linhas (para não quebrar índices)
+            const width = Math.max(...data.map(r => r.length));
+            data = data.map(r => {
+                const row = r.slice(0);
+                while (row.length < width) row.push('');
+                return row;
+            });
+
+            const fileObj = {
+                fileName: file.name,
+                headers: data[0],
+                rows: data.slice(1),
+                primaryIdxs: []
+            };
+
+            
+            // Auto-seleção de colunas (evita default quebrado quando a 1ª coluna não é nome/login)
+            try {
+                const kind = (target === 'C') ? 'SIST' : (target === 'B' ? 'TREIN' : 'RH');
+                const autoIdxs = detectPrimaryIdxs(fileObj.headers, kind);
+                if (autoIdxs && autoIdxs.length) fileObj.primaryIdxs = autoIdxs;
+            } catch(_) {}
+if (target === 'A') {
+                // Detecta automaticamente a coluna de Cargo na Base RH (para exportação)
+                fileObj.cargoIdx = detectCargoIdx(fileObj.headers);
+                state.fileA = fileObj;
+                renderFileCard('A');
+            } else if (target === 'B') {
+                state.filesB.push({ ...fileObj, id: Date.now() });
+                renderFilesB();
+            } else if (target === 'C') {
+                // Campos opcionais para exibir status do sistema
+                fileObj.statusSysIdx = '';
+                state.fileC = fileObj;
+                renderFileCard('C');
+            }
+            
+            updateProcessButton();
+            // Permite selecionar o mesmo arquivo novamente (sem precisar F5)
+            event.target.value = '';
+        }
+
+        function renderFileCard(type) {
+            const container = document.getElementById(`container-file-${type.toLowerCase()}`);
+            const data = type === 'A' ? state.fileA : state.fileC;
+            if (!container || !data) return;
+
+            container.innerHTML = `
+                <div class="animate-fade space-y-4">
+                    <div class="p-3 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-between">
+                        <span class="text-xs font-bold text-blue-700 truncate max-w-[150px]">${data.fileName}</span>
+                        <button type="button" onclick="removeFile('${type}')" class="text-slate-400 hover:text-red-500">✕</button>
+                    </div>
+
+                    <div class="space-y-3">
+                        <label class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Coluna(s) de Nome/Login</label>
+                        <div id="ms-${type.toLowerCase()}-login"></div>
+                        <p class="text-[10px] text-slate-400">Multi-seleção real com checkboxes.</p>
+
+                        ${type === 'C' ? `
+                        <div class="space-y-2 pt-2">
+                            <label class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Coluna Status Sistema (opcional)</label>
+                            <select onchange="updateStatusIdx('SYS', this.value)"
+                                    class="w-full p-2.5 rounded-lg border border-slate-200 text-xs bg-slate-50 focus:ring-2 focus:ring-primary/20 outline-none">
+                                <option value="">—</option>
+                                ${data.headers.map((h, i) => `<option value="${i}" ${String(state.fileC.statusSysIdx||'')===String(i)?'selected':''}>${h || `Coluna ${i+1}`}</option>`).join('')}
+                            </select>
+                        </div>
+                        ` : ``}
+                    </div>
+                </div>
+            `;
+
+            // Render dropdown checkbox para seleção de colunas
+            const mountId = `ms-${type.toLowerCase()}-login`;
+            renderMultiSelect(
+                mountId,
+                data.headers,
+                data.primaryIdxs || [],
+                (sel) => updatePrimaryIdx(type, sel)
+            );
+        }
+
+        function renderFilesB() {
+            const container = document.getElementById('container-files-b');
+            if (!container) return;
+
+            container.innerHTML = state.filesB.map(f => `
+                <div class="p-3 rounded-xl bg-white border border-slate-200 flex flex-col gap-2 animate-fade">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] font-bold text-slate-700 truncate max-w-[160px]">${f.fileName}</span>
+                        <button type="button" onclick="removeFileB(${f.id})" class="text-slate-300 hover:text-red-500">✕</button>
+                    </div>
+                    <label class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Coluna(s) de Nome (Treinamento)</label>
+                    <div id="ms-b-${f.id}"></div>
+                    <p class="text-[10px] text-slate-400">Multi-seleção real com checkboxes.</p>
+                </div>
+            `).join('');
+
+            if (state.filesB.length === 0) container.innerHTML = '';
+
+            // Render dropdown checkbox para cada planilha de treinamento
+            state.filesB.forEach(f => {
+                const mountId = `ms-b-${f.id}`;
+                renderMultiSelect(
+                    mountId,
+                    f.headers,
+                    f.primaryIdxs || [],
+                    (sel) => updatePrimaryIdxB(f.id, sel)
+                );
+            });
+        }
+
+
+        function updatePrimaryIdx(type, vals) {
+            const arr = Array.isArray(vals) ? vals.map(v => String(v)) : [String(vals)];
+            if (type === 'A') state.fileA.primaryIdxs = arr;
+            if (type === 'C') state.fileC.primaryIdxs = arr;
+        }
+
+        function updateStatusIdx(kind, val) {
+            if (!state.fileC) return;
+            if (kind === 'SYS') state.fileC.statusSysIdx = String(val || '');
+        }
+
+        function updatePrimaryIdxB(id, vals) {
+            const f = state.filesB.find(x => x.id === id);
+            if (!f) return;
+            const arr = Array.isArray(vals) ? vals.map(v => String(v)) : [String(vals)];
+            f.primaryIdxs = arr;
+        }
+
+        function removeFile(type) {
+            if (type === 'A') state.fileA = null;
+            if (type === 'C') state.fileC = null;
+            const inp = document.getElementById(`input-file-${type.toLowerCase()}`);
+            if (inp) inp.value = '';
+            document.getElementById(`container-file-${type.toLowerCase()}`).innerHTML = `
+                <div onclick="document.getElementById('input-file-${type.toLowerCase()}').click()" class="flex-grow border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center p-8 gap-3 cursor-pointer hover:bg-slate-50 hover:border-primary/50 transition-all">
+                    <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+                    </div>
+                    <span class="text-[10px] font-bold uppercase text-slate-400">Carregar CSV</span>
+                </div>
+            `;
+            updateProcessButton();
+        }
+
+        function removeFileB(id) {
+            state.filesB = state.filesB.filter(f => f.id !== id);
+            const inpB = document.getElementById('input-file-b');
+            if (inpB) inpB.value = '';
+            renderFilesB();
+            updateProcessButton();
+        }
+
+        function updateProcessButton() {
+            const btn = document.getElementById('btn-process');
+            if (btn) btn.disabled = !(state.fileA && state.fileC && state.filesB.length > 0);
+            // Se a auditoria ainda não foi processada, garante que a tela de resultados não apareça
+            if (!state.auditProcessed) {
+                showSetupView();
+            }
+        }
+
+                // --- INTERAÇÕES: FILTRO POR CARDS (RESULT VIEW) ---
+        function setFilter(tag) {
+            state.activeFilter = tag; // null | 'ok'|'warn'|'amb'|'err'
+            if (!document.getElementById('result-view').classList.contains('hidden')) {
+                renderFilteredTable();
+            }
+        }
+
+        function clearFilter() {
+            setFilter(null);
+        }
+
+        function normalizeFilterValue(v) {
+            const s = (v ?? '').toString().trim();
+            return s.length ? s : '—';
+        }
+
+        // Retorna resultados filtrados por:
+        // 1) Card (tag ok/warn/amb/err)
+        // 2) Dropdown Status SS
+        // 3) Dropdown Status Sistema
+        function getFilteredResults() {
+            let out = Array.isArray(state.results) ? state.results.slice() : [];
+
+            if (state.activeFilter) {
+                out = out.filter(r => r.tag === state.activeFilter);
+            }
+
+            if (state.filterStatusSS && state.filterStatusSS !== '__ALL__') {
+                const target = state.filterStatusSS;
+                out = out.filter(r => normalizeFilterValue(r.statusSS) === target);
+            }
+
+            if (state.filterStatusSistema && state.filterStatusSistema !== '__ALL__') {
+                const target = state.filterStatusSistema;
+                out = out.filter(r => normalizeFilterValue(r.statusSistema) === target);
+            }
+
+            return out;
+        }
+
+        function hydrateStatusFilterOptions() {
+            const selSS = document.getElementById('filter-status-ss');
+            const selSys = document.getElementById('filter-status-sistema');
+            if (!selSS || !selSys) return;
+
+            const ssSet = new Set();
+            const sysSet = new Set();
+            (state.results || []).forEach(r => {
+                ssSet.add(normalizeFilterValue(r.statusSS));
+                sysSet.add(normalizeFilterValue(r.statusSistema));
+            });
+
+            const ssVals = Array.from(ssSet).sort((a,b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
+            const sysVals = Array.from(sysSet).sort((a,b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
+
+            // Rebuild options (keeps selection if still available)
+            const prevSS = state.filterStatusSS || '__ALL__';
+            const prevSys = state.filterStatusSistema || '__ALL__';
+
+            selSS.innerHTML = `<option value="__ALL__">Todos</option>` + ssVals.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+            selSys.innerHTML = `<option value="__ALL__">Todos</option>` + sysVals.map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+
+            // Restore selection
+            selSS.value = ssSet.has(prevSS) ? prevSS : '__ALL__';
+            selSys.value = sysSet.has(prevSys) ? prevSys : '__ALL__';
+
+            state.filterStatusSS = selSS.value;
+            state.filterStatusSistema = selSys.value;
+        }
+
+        function updateStatusFilterCount() {
+            const el = document.getElementById('status-filter-count');
+            if (!el) return;
+            const total = (state.results || []).length;
+            const showing = getFilteredResults().length;
+            el.textContent = `Exibindo ${showing} de ${total}`;
+        }
+
+        function onStatusFiltersChange() {
+            const selSS = document.getElementById('filter-status-ss');
+            const selSys = document.getElementById('filter-status-sistema');
+            if (selSS) state.filterStatusSS = selSS.value;
+            if (selSys) state.filterStatusSistema = selSys.value;
+            if (!document.getElementById('result-view').classList.contains('hidden')) {
+                renderFilteredTable();
+            }
+        }
+
+        function clearStatusFilters() {
+            state.filterStatusSS = '__ALL__';
+            state.filterStatusSistema = '__ALL__';
+            const selSS = document.getElementById('filter-status-ss');
+            const selSys = document.getElementById('filter-status-sistema');
+            if (selSS) selSS.value = '__ALL__';
+            if (selSys) selSys.value = '__ALL__';
+            if (!document.getElementById('result-view').classList.contains('hidden')) {
+                renderFilteredTable();
+            }
+        }
+
+        function updateActiveCardStyles() {
+            const cards = [
+                { id: 'card-total', tag: null },
+                { id: 'card-ok', tag: 'ok' },
+                { id: 'card-warn', tag: 'warn' },
+                { id: 'card-amb', tag: 'amb' },
+                { id: 'card-err', tag: 'err' },
+            ];
+            cards.forEach(c => {
+                const el = document.getElementById(c.id);
+                if (!el) return;
+                const isActive = (c.tag === state.activeFilter) || (c.tag === null && state.activeFilter === null);
+                el.classList.toggle('ring-2', isActive);
+                el.classList.toggle('ring-primary/40', isActive);
+            });
+
+            const bar = document.getElementById('filter-bar');
+            const badge = document.getElementById('filter-badge');
+            const countEl = document.getElementById('filter-count');
+
+            if (!bar || !badge || !countEl) return;
+
+            if (!state.activeFilter) {
+                bar.classList.add('hidden');
+                badge.innerText = '—';
+                countEl.innerText = '';
+                return;
+            }
+
+            const labelByTag = { ok: 'Aptos', warn: 'Inaptos', amb: 'Ambíguos', err: 'Não Localizados' };
+            const classByTag = {
+                ok: 'bg-emerald-600 text-white',
+                warn: 'bg-amber-500 text-white',
+                amb: 'bg-purple-600 text-white',
+                err: 'bg-rose-600 text-white'
+            };
+
+            badge.className = `px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest ${classByTag[state.activeFilter] || 'bg-slate-200 text-slate-700'}`;
+            badge.innerText = labelByTag[state.activeFilter] || state.activeFilter;
+
+            const filtered = getFilteredResults();
+            countEl.innerText = `${filtered.length} item(ns)`;
+            bar.classList.remove('hidden');
+        }
+
+        function renderFilteredTable() {
+            const tbody = document.getElementById('result-tbody');
+            if (!tbody) return;
+
+            const filtered = getFilteredResults();
+
+            tbody.innerHTML = filtered.map(row => `
+                <tr class="hover:bg-slate-50/50 transition-colors">
+                    <td class="p-6 font-mono text-slate-500 font-bold">${row.login}</td>
+                    <td class="p-6 font-extrabold text-slate-900">${row.nomeMapeado}</td>
+                    <td class="p-6 text-xs font-bold text-slate-600">${row.statusSS || '—'}</td>
+                    <td class="p-6 text-xs font-bold text-slate-600">${row.statusSistema || '—'}</td>
+                    <td class="p-6">
+                        <span class="status-pill text-[9px] font-black uppercase tracking-widest ${row.tag === 'ok' ? 'bg-emerald-600 text-white' : (row.tag === 'warn' ? 'bg-amber-500 text-white' : (row.tag === 'amb' ? 'bg-purple-600 text-white' : 'bg-rose-600 text-white'))} shadow-sm">
+                            ${row.status}
+                        </span>
+                        ${row._manual ? '<span class="ml-2 inline-flex items-center px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-slate-900 text-white">Manual</span>' : ''}
+                    </td>
+                    <td class="p-6">
+                        <div class="flex items-start gap-2">
+                            <div class="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${row.tag === 'ok' ? 'bg-emerald-500' : (row.tag === 'warn' ? 'bg-amber-500' : (row.tag === 'amb' ? 'bg-purple-500' : 'bg-rose-500'))}"></div>
+                            <span class="text-[11px] font-medium text-slate-600 leading-relaxed">${row.justificativa}</span>
+                            
+                        </div>
+                    </td>
+                    <td class="p-6">
+                        <button onclick="openReviewModal('${row._rowKey}')" class="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-black hover:bg-slate-100 transition-all">
+                            ${row._manual ? "Editar" : "Revisar"}
+                        </button>
+                    </td>
+                </tr>
+`).join('');
+
+            updateActiveCardStyles();
+            updateStatusFilterCount();
+        }
+
+        // --- ANÁLISE PONTUAL (1 USUÁRIO) ---
+        function auditOne(input, fullNameIndex, firstNameIndex, trainingMap) {
+            const original = input || '';
+            const normalized = normalizeText(original);
+            const looksFull = isLikelyFullName(original);
+
+            function listTopCandidates(cands, limit=5) {
+                return cands.slice(0, limit).map(c => `${c.fullName.toUpperCase()} (linha ${c.row})`);
+            }
+
+            function buildItem(tag, status, nomeMapeado, justificativa) {
+                return { login: original, nomeMapeado: nomeMapeado || '—', tag, status, justificativa };
+            }
+
+            function finalizeWithTraining(match) {
+                const trainingKey = normalizeText(match && match.fullName ? match.fullName : '');
+                const foundTrainings = trainingKey ? trainingMap.get(trainingKey) : null;
+                if (foundTrainings && foundTrainings.length) {
+                    return buildItem('ok', 'Apto', match.fullName, `Apto. Confirmado em: ${foundTrainings.join('; ')}`);
+                }
+                return buildItem('warn', 'Inapto', match.fullName, 'Localizado no RH, mas sem registro de treinamento.');
+            }
+
+            if (looksFull) {
+                const exactList = fullNameIndex.get(normalized) || [];
+                if (exactList.length === 1) return finalizeWithTraining(exactList[0]);
+                if (exactList.length > 1) return buildItem('amb','Login Ambíguo','—',`Login ambíguo: múltiplos registros com o MESMO nome completo. Possíveis nomes - ${listTopCandidates(exactList).join(', ')}`);
+
+                const tokens = tokenizeName(original);
+                if (tokens.length === 0) return buildItem('err','Não Localizado','—','ID/Login não encontrado na base de dados do RH.');
+                const pool = firstNameIndex.get(tokens[0]) || [];
+                // Match estrito (ordem + tamanho) para nome completo
+                const eligible = pool.filter(c =>
+                    c.tokens.length === tokens.length &&
+                    tokens.every((t, i) => c.tokens[i] === t)
+                );
+
+                if (eligible.length === 1) return finalizeWithTraining(eligible[0]);
+                if (eligible.length > 1) return buildItem('amb','Login Ambíguo','—',`Login ambíguo: nome completo não bateu exatamente, mas existem múltiplos candidatos contendo todos os tokens. Possíveis nomes - ${listTopCandidates(eligible).join(', ')}`);
+
+                const required = tokens.slice(1);
+
+                const suggestions = pool.map(c => {
+                    let score = 0;
+                    required.forEach(t => { if (c.tokens.includes(t)) score += 2; });
+                    return { c, score };
+                }).sort((a,b) => b.score - a.score).filter(x => x.score > 0).slice(0,5).map(x => x.c.fullName.toUpperCase());
+
+                const sugText = suggestions.length ? ` Sugestões próximas (mesmo 1º nome): ${suggestions.join(', ')}.` : '';
+                return buildItem('err','Não Localizado','—',`Nome completo não encontrado na base de dados do RH.${sugText}`);
+            }
+
+            const tokens = tokenizeName(original);
+            if (tokens.length === 0) return buildItem('err','Não Localizado','—','ID/Login não encontrado na base de dados do RH.');
+            const first = tokens[0];
+            const pool = firstNameIndex.get(first) || [];
+            if (pool.length === 0) return buildItem('err','Não Localizado','—','ID/Login não encontrado na base de dados do RH.');
+
+            function scoreCandidate(c) {
+                let score = 0;
+                const lastTokens = c.tokens.slice(1);
+                for (let i = 1; i < tokens.length; i++) {
+                    const t = tokens[i];
+                    if (!t) continue;
+                    if (t.length === 1) {
+                        const ok = lastTokens.some(x => x.startsWith(t));
+                        score += ok ? 4 : -3;
+                    } else {
+                        const exact = lastTokens.includes(t);
+                        const prefix = !exact && lastTokens.some(x => x.startsWith(t));
+                        score += exact ? 10 : (prefix ? 6 : -6);
+                    }
+                }
+                return score;
+            }
+
+            const scored = pool.map(c => ({ c, score: scoreCandidate(c) })).sort((a,b) => b.score - a.score);
+            const best = scored[0];
+            const second = scored[1];
+            const MIN_SCORE = 10;
+
+            if (!best || best.score < MIN_SCORE) return buildItem('err','Não Localizado','—','ID/Login não encontrado na base de dados do RH.');
+
+            const tied = second && (best.score - second.score) <= 2;
+            if (tied) {
+                const top = scored.filter(x => x.score >= best.score - 2).slice(0, 5).map(x => x.c.fullName.toUpperCase());
+                return buildItem('amb','Login Ambíguo','—',`Login ambíguo: possíveis nomes - ${top.join(', ')}`);
+            }
+
+            return finalizeWithTraining(best.c);
+        }
+
+        function analyzeSingle() {
+            const inputEl = document.getElementById('single-input');
+            const input = (inputEl ? inputEl.value : '').trim();
+            if (!input) return alert('Digite um nome/login para analisar.');
+
+            if (!state.auditProcessed || !state.auditCache) {
+                return alert('Primeiro processe a auditoria para habilitar a análise pontual.');
+            }
+
+            const item = auditOne(input, state.auditCache.fullNameIndex, state.auditCache.firstNameIndex, state.auditCache.trainingMap);
+
+            const wrap = document.getElementById('single-result');
+            const st = document.getElementById('single-status');
+            const mapped = document.getElementById('single-mapped');
+            const just = document.getElementById('single-just');
+            const dot = document.getElementById('single-dot');
+            if (!wrap || !st || !mapped || !just || !dot) return;
+
+            wrap.classList.remove('hidden');
+            st.innerText = item.status || '—';
+            mapped.innerText = item.nomeMapeado ? `Nome mapeado: ${item.nomeMapeado}` : '—';
+            just.innerText = item.justificativa || '—';
+
+            const cls = (item.tag === 'ok') ? ['bg-emerald-600','text-white'] :
+                        (item.tag === 'warn') ? ['bg-amber-500','text-white'] :
+                        (item.tag === 'amb') ? ['bg-purple-600','text-white'] :
+                        ['bg-rose-600','text-white'];
+
+            st.className = `status-pill text-[9px] font-black uppercase tracking-widest ${cls.join(' ')}`;
+            dot.className = `mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${(item.tag === 'ok') ? 'bg-emerald-500' : (item.tag === 'warn') ? 'bg-amber-500' : (item.tag === 'amb') ? 'bg-purple-500' : 'bg-rose-500'}`;
+        }
+
+        function clearSingleAnalysis() {
+            const inputEl = document.getElementById('single-input');
+            if (inputEl) inputEl.value = '';
+            const wrap = document.getElementById('single-result');
+            if (wrap) wrap.classList.add('hidden');
+        }
+
+// --- EXECUTION ---
+        
+function processAudit() {
+    state.auditId = computeAuditId();
+    state.overrides = loadOverrides(state.auditId);
+    // Construir índices a partir da base RH para facilitar a busca
+    const fullNameIndex = new Map();      // chave: nome completo normalizado -> lista de registros
+    const firstNameIndex = new Map();     // chave: primeiro nome -> lista de registros
+    state.fileA.rows.forEach((r, idx) => {
+        const fullName = getCombinedValue(r, state.fileA.primaryIdxs);
+        const fullNameKey = normalizeText(fullName);
+        const tokens = tokenizeName(fullName);
+        if (!tokens.length) return;
+        if (!fullNameIndex.has(fullNameKey)) fullNameIndex.set(fullNameKey, []);
+        fullNameIndex.get(fullNameKey).push({ fullName, tokens, row: idx+2, _rawA: r });
+
+        const first = tokens[0];
+        if (!firstNameIndex.has(first)) firstNameIndex.set(first, []);
+        firstNameIndex.get(first).push({ fullName, tokens, row: idx+2, _rawA: r });
+    });
+
+
+    // Validação: se a Base RH parece não conter nomes (coluna errada), bloqueia
+    if (!validateRHIndex(firstNameIndex)) {
+        alert('A Base RH parece estar com a coluna de Nome errada (ex.: matrícula/código).\n\nSelecione a coluna correta em “1. Base RH” (Nome/Nome Completo) e processe novamente.');
+        return;
+    }
+
+    // Mapear Treinamentos
+    const trainingMap = new Map();
+    state.filesB.forEach(f => {
+        f.rows.forEach((r, idx) => {
+            const key = normalizeText(getCombinedValue(r, f.primaryIdxs));
+            if (!key) return;
+            if (!trainingMap.has(key)) trainingMap.set(key, []);
+            trainingMap.get(key).push(`${f.fileName} (L.${idx+2})`);
+        });
+    });
+
+    const results = state.fileC.rows.map((r, idx) => {
+                const input = getCombinedValue(r, state.fileC.primaryIdxs);
+        const tokens = tokenizeName(input);
+        const inputIsFull = isLikelyFullName(input);
+
+        let item = {
+            login: input,
+            _cRow: idx + 2,
+            _rowKey: `${state.auditId || 'AUD'}::${idx + 2}`,
+            _rawC: r,
+            nomeMapeado: '—',
+            statusSS: '',
+            statusSistema: '',
+            tag: 'err',
+            status: 'Não Localizado',
+            justificativa: 'ID/Login não encontrado na base de dados do RH.'
+        };
+
+        // Capturar status do sistema (opcional)
+        if (state.fileC) {
+            item.statusSistema = getValue(r, state.fileC.statusSysIdx);
+        }
+
+        // 1) Nome completo: match exato, depois fuzzy ESTRITO; se nenhum, NÃO vira ambíguo
+        if (inputIsFull) {
+            const exactKey = normalizeText(input);
+            const exact = fullNameIndex.get(exactKey) || [];
+            if (exact.length === 1) {
+                const match = exact[0];
+                const found = trainingMap.get(normalizeText(match.fullName));
+                if (found) return { ...item, nomeMapeado: match.fullName, _rawA: match._rawA, tag:'ok', status:'Apto', statusSS:'Apto', justificativa:`Apto. Confirmado em: ${found.join('; ')}` };
+                return { ...item, nomeMapeado: match.fullName, _rawA: match._rawA, tag:'warn', status:'Inapto', statusSS:'Inapto', justificativa:'Localizado no RH, mas sem registro de treinamento.' };
+            }
+            if (exact.length > 1) {
+                return { ...item, tag:'amb', status:'Login Ambíguo', statusSS:'Login Ambíguo', candidates: exact.slice(0,10).map(x=>({ fullName:x.fullName, row:x.row })), justificativa:'Login ambíguo: múltiplos registros com o mesmo nome completo.' };
+            }
+
+            // fuzzy estrito: TODOS os tokens precisam existir no candidato
+            const candidates = (firstNameIndex.get(tokens[0]) || []).filter(c =>
+                c.tokens.length === tokens.length &&
+                tokens.every((t, i) => c.tokens[i] === t)
+            );
+            if (candidates.length === 1) {
+                const match = candidates[0];
+                const found = trainingMap.get(normalizeText(match.fullName));
+                if (found) return { ...item, nomeMapeado: match.fullName, _rawA: match._rawA, tag:'ok', status:'Apto', statusSS:'Apto', justificativa:`Apto. Confirmado em: ${found.join('; ')}` };
+                return { ...item, nomeMapeado: match.fullName, _rawA: match._rawA, tag:'warn', status:'Inapto', statusSS:'Inapto', justificativa:'Localizado no RH, mas sem registro de treinamento.' };
+            }
+            if (candidates.length > 1) {
+                return { ...item, tag:'amb', status:'Login Ambíguo', statusSS:'Login Ambíguo', candidates: candidates.slice(0,10).map(x=>({ fullName:x.fullName, row:x.row })), justificativa:'Login ambíguo: possíveis nomes - ' + candidates.slice(0,5).map(x=>`${x.fullName.toUpperCase()} (linha ${x.row})`).join(', ') };
+            }
+
+            // 2.1) FULL NAME - subset match (confiança alta)
+            // Ex.: input "wellington brito" deve casar com "wellington cavalcante brito" se for único e seguro.
+            const poolFull = firstNameIndex.get(tokens[0]) || [];
+
+            function subsetScore(inputTokens, candTokens) {
+                // exige que todos tokens do input existam no candidato (ordem não importa)
+                let score = 0;
+                for (let i = 0; i < inputTokens.length; i++) {
+                    const t = inputTokens[i];
+                    if (!t) continue;
+                    if (candTokens.includes(t)) score += 10;
+                    else if (candTokens.some(x => x.startsWith(t))) score += 6;
+                    else return -999; // falhou: token do input não existe no candidato
+                }
+                // penaliza candidato muito maior (evita "qualquer coisa serve")
+                score -= Math.max(0, candTokens.length - inputTokens.length);
+                return score;
+            }
+
+            const subsetScored = poolFull
+                .map(c => ({ c, score: subsetScore(tokens, c.tokens) }))
+                .filter(x => x.score > 0)
+                .sort((a,b) => b.score - a.score);
+
+            if (subsetScored.length) {
+                const best = subsetScored[0];
+                const second = subsetScored[1];
+
+                // Thresholds (ajuste fino)
+                const MIN_SUBSET_SCORE = 18; // 2 tokens fortes (10 + 10 - penalidade)
+                const GAP = 4;              // vantagem mínima sobre o 2º
+
+                const confident =
+                    best.score >= MIN_SUBSET_SCORE &&
+                    (!second || (best.score - second.score) >= GAP);
+
+                if (confident) {
+                    const match = best.c;
+                    const found = trainingMap.get(normalizeText(match.fullName));
+                    if (found) return { ...item, nomeMapeado: match.fullName, _rawA: match._rawA, tag:'ok', status:'Apto', statusSS:'Apto', justificativa:`Apto. Confirmado em: ${found.join('; ')}` };
+                    return { ...item, nomeMapeado: match.fullName, _rawA: match._rawA, tag:'warn', status:'Inapto', statusSS:'Inapto', justificativa:'Localizado no RH, mas sem registro de treinamento.' };
+                }
+
+                // Se tem mais de um candidato forte -> ambíguo (não “não localizado”)
+                const top = subsetScored
+                    .filter(x => x.score >= best.score - 4)
+                    .slice(0,5)
+                    .map(x => x.c.fullName.toUpperCase());
+
+                if (top.length > 1) {
+                    return { ...item, tag:'amb', status:'Login Ambíguo', statusSS:'Login Ambíguo', candidates: subsetScored.slice(0,10).map(x=>({ fullName:x.c.fullName, row:x.c.row })), justificativa:'Nome parcial bate em múltiplos registros no RH. Sugestões próximas: ' + top.join(', ') };
+                }
+            }
+
+            // nenhum candidato elegível -> Não Localizado (não ambíguo)
+            // Ainda assim, podemos sugerir nomes próximos (sem marcar como ambíguo), para facilitar revisão manual.
+            const near = (firstNameIndex.get(tokens[0]) || [])
+                .map(c => {
+                    let s = 0;
+                    // tokens relevantes (sem o primeiro nome)
+                    tokens.slice(1).forEach(t => { if (c.tokens.includes(t)) s += 2; });
+                    return { c, s };
+                })
+                .filter(x => x.s > 0)
+                .sort((a,b) => b.s - a.s)
+                .slice(0,5)
+                .map(x => x.c.fullName.toUpperCase());
+            if (near.length) {
+                item.justificativa = `ID/Login não encontrado na base de dados do RH. Sugestões próximas: ${near.join(', ')}`;
+            }
+            return item;
+        }
+
+        // 2) Login tokenizado: ranking por iniciais e sobrenomes
+        const first = tokens[0] || '';
+        const pool = firstNameIndex.get(first) || [];
+        if (pool.length === 1) {
+            const match = pool[0];
+            const found = trainingMap.get(normalizeText(match.fullName));
+            if (found) return { ...item, nomeMapeado: match.fullName, _rawA: match._rawA, tag:'ok', status:'Apto', statusSS:'Apto', justificativa:`Apto. Confirmado em: ${found.join('; ')}` };
+            return { ...item, nomeMapeado: match.fullName, _rawA: match._rawA, tag:'warn', status:'Inapto', statusSS:'Inapto', justificativa:'Localizado no RH, mas sem registro de treinamento.' };
+        }
+        if (pool.length > 1) {
+            const scored = pool.map(c => {
+                let score = 0;
+                tokens.slice(1).forEach(t => {
+                    if (t.length === 1) {
+                        if (c.tokens.some(x => x.startsWith(t))) score += 4;
+                        else score -= 2;
+                    } else {
+                        if (c.tokens.includes(t)) score += 10;
+                        else if (c.tokens.some(x => x.startsWith(t))) score += 6;
+                        else score -= 4;
+                    }
+                });
+                return { c, score };
+            }).sort((a,b)=>b.score-a.score);
+
+            if (!scored.length || scored[0].score < 6) return item;
+
+            const best = scored[0];
+            const ties = scored.filter(x=>x.score === best.score);
+            if (ties.length > 1) {
+                return { ...item, tag:'amb', status:'Login Ambíguo', statusSS:'Login Ambíguo', candidates: ties.slice(0,10).map(x=>({ fullName:x.c.fullName, row:x.c.row })), justificativa:'Login ambíguo: possíveis nomes - ' + ties.slice(0,5).map(x=>`${x.c.fullName.toUpperCase()} (linha ${x.c.row})`).join(', ') };
+            }
+            const match = best.c;
+            const found = trainingMap.get(normalizeText(match.fullName));
+            if (found) return { ...item, nomeMapeado: match.fullName, _rawA: match._rawA, tag:'ok', status:'Apto', statusSS:'Apto', justificativa:`Apto. Confirmado em: ${found.join('; ')}` };
+            return { ...item, nomeMapeado: match.fullName, _rawA: match._rawA, tag:'warn', status:'Inapto', statusSS:'Inapto', justificativa:'Localizado no RH, mas sem registro de treinamento.' };
+        }
+
+        return item;
+    });
+
+    state.results = results;
+
+            applyOverridesToResults();
+
+            // Cache para análise pontual (evita reconstruir índices e corrige detecção de "já processado")
+            state.auditCache = { fullNameIndex, firstNameIndex, trainingMap };
+            state.auditProcessed = true;
+    displayResults();
+}
+function showSetupView(){
+    const s=document.getElementById('setup-view');
+    const r=document.getElementById('result-view');
+    const h=document.getElementById('header-actions');
+    if(s){ s.classList.remove('hidden'); s.style.display=''; }
+    if(r){ r.classList.add('hidden'); r.style.display='none'; }
+    if(h) h.classList.add('hidden');
+}
+
+        function showResultView(){
+    // Guard: results screen only after processing/loading an audit
+    if(!state || !state.auditProcessed){ 
+        try{ showSetupView(); enforceSetupOnlyUI && enforceSetupOnlyUI(); }catch(_){}
+        return;
+    }
+    const s=document.getElementById('setup-view');
+    const r=document.getElementById('result-view');
+    const h=document.getElementById('header-actions');
+    if(s){ s.classList.add('hidden'); s.style.display='none'; }
+    if(r){ r.classList.remove('hidden'); r.style.display=''; }
+    if(h) h.classList.remove('hidden');
+    try{ restoreResultsUI && restoreResultsUI(); }catch(_){ }
+}
+
+        function displayResults() {
+            showResultView();
+            try{ restoreResultsUI && restoreResultsUI(); }catch(_){ }
+
+            // Stats
+            document.getElementById('stat-total').innerText = state.results.length;
+            document.getElementById('stat-ok').innerText = state.results.filter(r => r.tag === 'ok').length;
+            document.getElementById('stat-warn').innerText = state.results.filter(r => r.tag === 'warn').length;
+            // quantidade de itens ambíguos
+            const ambCount = state.results.filter(r => r.tag === 'amb').length;
+            const errCount = state.results.filter(r => r.tag === 'err').length;
+            const statAmbEl = document.getElementById('stat-amb');
+            if (statAmbEl) statAmbEl.innerText = ambCount;
+            document.getElementById('stat-err').innerText = errCount;
+
+            // Monta os dropdowns com base nos status existentes e renderiza a tabela com filtros.
+            hydrateStatusFilterOptions();
+            renderFilteredTable();
+            
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function resetApp() {
+            state = { 
+                fileA: null, 
+                filesB: [], 
+                fileC: null, 
+                results: [], 
+                activeFilter: null, 
+                // Filtros (apenas visualização do relatório)
+                filterStatusSS: '__ALL__',
+                filterStatusSistema: '__ALL__',
+                auditCache: null,
+                auditId: null,
+                overrides: {},
+                reviewHistory: [],
+                auditProcessed: false};
+            document.getElementById('setup-view').classList.remove('hidden');
+            document.getElementById('result-view').classList.add('hidden');
+            
+            enforceSetupOnlyUI();
+document.getElementById('header-actions').classList.add('hidden');
+            
+            document.getElementById('container-files-b').innerHTML = '';
+            removeFile('A');
+            removeFile('C');
+            
+            // Limpar inputs de upload para permitir novo upload sem recarregar a página
+            const inA = document.getElementById('input-file-a');
+            const inB = document.getElementById('input-file-b');
+            const inC = document.getElementById('input-file-c');
+            if (inA) inA.value = '';
+            if (inB) inB.value = '';
+            if (inC) inC.value = '';
+
+            // Limpar análise pontual (se existir)
+            const singleInput = document.getElementById('single-input');
+            if (singleInput) singleInput.value = '';
+            const singleRes = document.getElementById('single-result');
+            if (singleRes) singleRes.classList.add('hidden');
+
+            // Limpar filtros (se existir)
+            if (typeof clearFilter === 'function') clearFilter();
+            if (typeof clearStatusFilters === 'function') clearStatusFilters();
+updateProcessButton();
+        }
+
+        
+        function exportCSV() {
+            // Colunas padrão (as que aparecem na tela)
+            const baseHeaders = ['Login (Sistema)', 'Nome Mapeado (RH)', 'Cargo (RH)', 'Status SS', 'Status Sistema', 'Status', 'Justificativa / Procedimento'];
+
+            // Colunas adicionais para exportação (conforme colunas selecionadas)
+            const extraHeaders = [];
+
+            // Sistema (C): exporta todas as colunas selecionadas para formar o Login
+            const cLoginIdxs = (state.fileC && state.fileC.primaryIdxs) ? state.fileC.primaryIdxs : [];
+            cLoginIdxs.forEach(i => {
+                const h = (state.fileC.headers && state.fileC.headers[Number(i)]) ? state.fileC.headers[Number(i)] : `Coluna ${Number(i)+1}`;
+                extraHeaders.push(`Sistema: ${h}`);
+            });
+
+            // RH (A): exporta as colunas selecionadas (as usadas no match)
+            const aIdxs = (state.fileA && state.fileA.primaryIdxs) ? state.fileA.primaryIdxs : [];
+
+            // RH (A): coluna Cargo (auto-detectada) - usada apenas na exportação
+            const aCargoIdx = (state.fileA && typeof state.fileA.cargoIdx !== 'undefined') ? String(state.fileA.cargoIdx || '') : '';
+
+            aIdxs.forEach(i => {
+                const h = (state.fileA.headers && state.fileA.headers[Number(i)]) ? state.fileA.headers[Number(i)] : `Coluna ${Number(i)+1}`;
+                extraHeaders.push(`RH: ${h}`);
+            });
+
+            const headers = [...baseHeaders, ...extraHeaders];
+
+            const rows = state.results.map(res => {
+                const row = [];
+                row.push(res.login || '');
+                row.push(res.nomeMapeado || '');
+                // Cargo vem da Base RH (linha do match). Se não houver match, fica vazio.
+                row.push((res._rawA && aCargoIdx !== '') ? getValue(res._rawA, aCargoIdx) : '');
+                row.push(res.statusSS || '');
+                row.push(res.statusSistema || '');
+                row.push(res.status || '');
+                row.push(res.justificativa || '');
+
+                // Extras do Sistema
+                if (res._rawC && Array.isArray(cLoginIdxs)) {
+                    cLoginIdxs.forEach(i => row.push(getValue(res._rawC, i)));
+                } else {
+                    cLoginIdxs.forEach(_ => row.push(''));
+                }
+
+                // Extras do RH
+                if (res._rawA && Array.isArray(aIdxs)) {
+                    aIdxs.forEach(i => row.push(getValue(res._rawA, i)));
+                } else {
+                    aIdxs.forEach(_ => row.push(''));
+                }
+
+                return row;
+            });
+
+            const csv = [headers, ...rows]
+                .map(r => r.map(v => `"${String(v || '').replace(/"/g, '""')}"`).join(';'))
+                .join('\r\n');
+
+            const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `seek_and_search_${Date.now()}.csv`;
+            a.click();
+        }
+
+    
+
+        // =============================
+        // Auditoria: Snapshot / Histórico / Relatório
+        // =============================
+        const APP_VERSION = 'seek-search+_auditpack_v1';
+
+        function safeJsonParse(raw, fallback=null){
+            try { return JSON.parse(raw); } catch (_) { return fallback; }
+        }
+
+        function saveReviewHistory(auditId, arr){
+            try { localStorage.setItem(`seeksearch_reviewhist__${auditId}`, JSON.stringify(arr || [])); } catch(_){}
+        }
+
+        function loadReviewHistory(auditId){
+            const raw = localStorage.getItem(`seeksearch_reviewhist__${auditId}`);
+            const arr = safeJsonParse(raw, []);
+            return Array.isArray(arr) ? arr : [];
+        }
+
+        function pushReviewEvent(ev){
+            if (!state.auditId) return;
+            state.reviewHistory = Array.isArray(state.reviewHistory) ? state.reviewHistory : [];
+            state.reviewHistory.push(ev);
+            saveReviewHistory(state.auditId, state.reviewHistory);
+        }
+
+        function enrichResultsWithTrainings(trainingMap){
+            if (!Array.isArray(state.results)) return;
+            const tm = trainingMap || (state.auditCache && state.auditCache.trainingMap) || null;
+            state.results.forEach(r => {
+                const name = (r && r.nomeMapeado && r.nomeMapeado !== '—') ? r.nomeMapeado : '';
+                if (!name || !tm) { r.trainings = Array.isArray(r.trainings) ? r.trainings : []; return; }
+                const found = tm.get(normalizeText(name));
+                r.trainings = Array.isArray(found) ? found.slice() : [];
+            });
+        }
+
+        function buildSnapshot(){
+            const now = new Date();
+            const meta = {
+                app: 'Seek and Search',
+                version: APP_VERSION,
+                createdAt: now.toISOString(),
+                auditId: state.auditId || computeAuditId()
+            };
+
+            // Snapshot é do resultado final + decisões/histórico.
+            return {
+                meta,
+                inputMeta: {
+                    baseRH: state.fileA ? { fileName: state.fileA.fileName, primaryIdxs: state.fileA.primaryIdxs || [], cargoIdx: state.fileA.cargoIdx || '' } : null,
+                    treinamentos: (state.filesB || []).map(f => ({ id: f.id, fileName: f.fileName, primaryIdxs: f.primaryIdxs || [] })),
+                    sistema: state.fileC ? { fileName: state.fileC.fileName, primaryIdxs: state.fileC.primaryIdxs || [], statusSysIdx: state.fileC.statusSysIdx || '' } : null,
+                },
+                overrides: state.overrides || {},
+                reviewHistory: Array.isArray(state.reviewHistory) ? state.reviewHistory : [],
+                results: Array.isArray(state.results) ? state.results.map(r => ({
+                    login: r.login, nomeMapeado: r.nomeMapeado, tag: r.tag, status: r.status, statusSS: r.statusSS, statusSistema: r.statusSistema,
+                    justificativa: r.justificativa, trainings: Array.isArray(r.trainings) ? r.trainings : [],
+                    _manual: !!r._manual, _review: r._review || null, _rowKey: r._rowKey || null, _cRow: r._cRow || null,
+                    candidates: Array.isArray(r.candidates) ? r.candidates : null,
+                    _rawA: r._rawA || null
+                })) : []
+            };
+        }
+
+        function downloadBlob(filename, mime, data){
+            const blob = (data instanceof Blob) ? data : new Blob([data], { type: mime });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 500);
+        }
+
+        function saveAuditSnapshot(){
+            if (!state.results || !state.results.length) return alert('Nenhuma auditoria processada para salvar.');
+            const snap = buildSnapshot();
+            const file = `seeksearch_${snap.meta.auditId}_${snap.meta.createdAt.slice(0,10)}.json`;
+            downloadBlob(file, 'application/json', JSON.stringify(snap, null, 2));
+        }
+
+        function handleAuditJsonUpload(e){
+            const file = e.target.files && e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                const obj = safeJsonParse(reader.result, null);
+                if (!obj || !obj.meta || !obj.results) return alert('Arquivo JSON inválido (snapshot).');
+                openSnapshot(obj);
+            };
+            reader.readAsText(file, 'utf-8');
+            e.target.value = '';
+        }
+
+        function openSnapshot(snap){
+            // carrega estado mínimo
+            state.auditId = snap.meta && snap.meta.auditId ? snap.meta.auditId : computeAuditId();
+            state.overrides = snap.overrides || {};
+            state.reviewHistory = Array.isArray(snap.reviewHistory) ? snap.reviewHistory : [];
+            state.results = Array.isArray(snap.results) ? snap.results.map(r => ({
+                ...r,
+                _rowKey: r._rowKey || getRowKey(r),
+                trainings: Array.isArray(r.trainings) ? r.trainings : []
+            })) : [];
+
+            // marca como "processado" (mesmo sem arquivos originais)
+            state.auditProcessed = true;
+            state.auditCache = state.auditCache || null;
+
+            // aplica overrides por segurança (se snapshot vier com overrides diferentes do resultado)
+            applyOverridesToResults();
+
+            displayResults();
+            refreshDashboard();
+        }
+
+        function exportReviewHistoryCSV(){
+            if (!state.auditId) return alert('Sem auditoria carregada.');
+            const hist = Array.isArray(state.reviewHistory) ? state.reviewHistory : loadReviewHistory(state.auditId);
+            if (!hist.length) return alert('Sem histórico de revisões.');
+            const esc = (v) => `"${String(v ?? '').replace(/"/g,'""')}"`;
+            const header = ['Quando','Login','Ação','De','Para','Justificativa'].map(esc).join(',');
+            const rows = hist.map(h => [
+                h.at ? new Date(h.at).toLocaleString('pt-BR') : '',
+                h.login || '',
+                h.action || '',
+                h.from || '',
+                h.to || '',
+                (h.just || '')
+            ].map(esc).join(','));
+            const csv = [header, ...rows].join('\n');
+            downloadBlob(`seeksearch_reviewhist_${state.auditId}.csv`, 'text/csv;charset=utf-8', csv);
+        }
+
+        function openReviewHistory(){
+            const modal = document.getElementById('reviewhist-modal');
+            if (!modal) return;
+            document.getElementById('reviewhist-auditid').textContent = state.auditId || '—';
+            renderReviewHistoryTable();
+            modal.classList.remove('hidden');
+            document.body.classList.add('overflow-hidden');
+        }
+
+        function closeReviewHistory(){
+            const modal = document.getElementById('reviewhist-modal');
+            if (modal) modal.classList.add('hidden');
+            document.body.classList.remove('overflow-hidden');
+        }
+
+        function clearReviewHistory(){
+            if (!state.auditId) return;
+            if (!confirm('Limpar histórico de revisões desta auditoria?')) return;
+            state.reviewHistory = [];
+            saveReviewHistory(state.auditId, []);
+            renderReviewHistoryTable();
+        }
+
+        function renderReviewHistoryTable(){
+            const tbody = document.getElementById('reviewhist-tbody');
+            if (!tbody) return;
+            const hist = Array.isArray(state.reviewHistory) ? state.reviewHistory : [];
+            if (!hist.length){
+                tbody.innerHTML = '<tr><td class="p-3 text-slate-500" colspan="5">Sem revisões registradas.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = hist.slice().reverse().map(h => `
+                <tr>
+                    <td class="p-3 text-xs font-bold text-slate-700">${h.at ? new Date(h.at).toLocaleString('pt-BR') : '—'}</td>
+                    <td class="p-3 font-mono text-xs text-slate-600">${escapeHtml(h.login || '—')}</td>
+                    <td class="p-3 text-xs font-bold text-slate-700">${escapeHtml(h.action || '—')}</td>
+                    <td class="p-3 text-xs text-slate-600">${escapeHtml((h.from || '—') + ' → ' + (h.to || '—'))}</td>
+                    <td class="p-3 text-[11px] text-slate-600">${escapeHtml(h.just || '')}</td>
+                </tr>
+            `).join('');
+        }
+
+        function exportReportHTML(){
+            if (!state.results || !state.results.length) return alert('Nenhuma auditoria processada.');
+            const snap = buildSnapshot();
+            const totals = {
+                total: snap.results.length,
+                ok: snap.results.filter(r=>r.tag==='ok').length,
+                warn: snap.results.filter(r=>r.tag==='warn').length,
+                amb: snap.results.filter(r=>r.tag==='amb').length,
+                err: snap.results.filter(r=>r.tag==='err').length
+            };
+
+            const topProc = computeTopProcedures(snap.results).slice(0,15);
+            const rows = snap.results.map(r => `
+                <tr>
+                    <td>${escapeHtml(r.login)}</td>
+                    <td>${escapeHtml(r.nomeMapeado)}</td>
+                    <td>${escapeHtml(r.statusSS || '—')}</td>
+                    <td>${escapeHtml(r.statusSistema || '—')}</td>
+                    <td>${escapeHtml(r.status)}</td>
+                    <td>${escapeHtml(r.justificativa || '')}</td>
+                    <td>${escapeHtml((r.trainings||[]).join('; '))}</td>
+                    <td>${r._manual ? 'Sim' : 'Não'}</td>
+                </tr>
+            `).join('');
+
+            const html = `<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Relatório - ${escapeHtml(snap.meta.auditId)}</title>
+<style>
+body{font-family:Inter,system-ui,Arial,sans-serif;margin:24px;color:#0f172a}
+h1{margin:0 0 6px 0;font-size:22px}
+.small{color:#475569;font-size:12px}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:16px 0}
+.card{border:1px solid #e2e8f0;border-radius:14px;padding:12px;background:#fff}
+.card b{display:block;font-size:20px;margin-top:6px}
+table{border-collapse:collapse;width:100%;font-size:12px}
+th,td{border:1px solid #e2e8f0;padding:8px;vertical-align:top}
+th{background:#f8fafc;text-transform:uppercase;letter-spacing:.08em;font-size:10px;color:#64748b}
+.badge{display:inline-block;padding:2px 10px;border-radius:999px;font-weight:800;font-size:10px}
+hr{border:0;border-top:1px solid #e2e8f0;margin:18px 0}
+</style></head>
+<body>
+<h1>Relatório de Auditoria — ${escapeHtml(snap.meta.auditId)}</h1>
+<div class="small">Gerado em ${new Date(snap.meta.createdAt).toLocaleString('pt-BR')} • App: ${escapeHtml(snap.meta.version)}</div>
+
+<div class="grid">
+  <div class="card"><div class="small">Total</div><b>${totals.total}</b></div>
+  <div class="card"><div class="small">Aptos</div><b>${totals.ok}</b></div>
+  <div class="card"><div class="small">Inaptos</div><b>${totals.warn}</b></div>
+  <div class="card"><div class="small">Ambíguos</div><b>${totals.amb}</b></div>
+  <div class="card"><div class="small">Não Localizados</div><b>${totals.err}</b></div>
+</div>
+
+<h2 style="font-size:14px;margin:18px 0 8px 0">Top procedimentos</h2>
+<table>
+  <thead><tr><th>Procedimento</th><th>Qtde</th></tr></thead>
+  <tbody>
+    ${topProc.length ? topProc.map(x=>`<tr><td>${escapeHtml(x.name)}</td><td style="text-align:right">${x.count}</td></tr>`).join('') : '<tr><td colspan="2">—</td></tr>'}
+  </tbody>
+</table>
+
+<hr>
+
+<h2 style="font-size:14px;margin:18px 0 8px 0">Resultados</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Login</th><th>Nome (RH)</th><th>Status SS</th><th>Status Sistema</th><th>Status Final</th><th>Justificativa</th><th>Treinamentos</th><th>Manual</th>
+    </tr>
+  </thead>
+  <tbody>${rows}</tbody>
+</table>
+
+</body></html>`;
+
+            downloadBlob(`relatorio_${snap.meta.auditId}.html`, 'text/html;charset=utf-8', html);
+        }
+
+        function computeTopProcedures(results){
+            const map = new Map();
+            (results || []).forEach(r => {
+                (r.trainings || []).forEach(t => {
+                    const k = (t || '').toString().trim();
+                    if (!k) return;
+                    map.set(k, (map.get(k) || 0) + 1);
+                });
+            });
+            return Array.from(map.entries())
+                .map(([name,count]) => ({name,count}))
+                .sort((a,b) => b.count - a.count || a.name.localeCompare(b.name,'pt-BR',{sensitivity:'base'}));
+        }
+
+        function refreshDashboard(){
+            // auditId
+            const idEl = document.getElementById('dash-audit-id');
+            if (idEl) idEl.textContent = state.auditId || '—';
+
+            // training coverage: consider "ok" as trained+apto
+            const total = (state.results || []).length;
+            const ok = (state.results || []).filter(r=>r.tag==='ok').length;
+            const pct = total ? Math.round((ok/total)*100) : 0;
+
+            const pctEl = document.getElementById('dash-training-pct');
+            const bar = document.getElementById('dash-training-bar');
+            const det = document.getElementById('dash-training-detail');
+
+            if (pctEl) pctEl.textContent = total ? `${pct}%` : '—';
+            if (bar) bar.style.width = `${pct}%`;
+            if (det) det.textContent = total ? `${ok} de ${total} com status Apto.` : '—';
+
+            // top procedures
+            const tbody = document.getElementById('dash-top-proc');
+            if (tbody){
+                const top = computeTopProcedures(state.results).slice(0,8);
+                tbody.innerHTML = top.length
+                    ? top.map(x => `<tr><td class="p-3 text-xs font-bold text-slate-800">${escapeHtml(x.name)}</td><td class="p-3 text-right text-xs font-black text-slate-700">${x.count}</td></tr>`).join('')
+                    : `<tr><td class="p-3 text-slate-500" colspan="2">Sem procedimentos encontrados.</td></tr>`;
+            }
+
+            drawStatusChart();
+        }
+
+        function drawStatusChart(){
+            const c = document.getElementById('dash-status-chart');
+            if (!c || !c.getContext) return;
+            const ctx = c.getContext('2d');
+
+            // resize to device pixels
+            const rect = c.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            c.width = Math.max(320, Math.floor(rect.width * dpr));
+            c.height = Math.max(160, Math.floor(160 * dpr));
+            ctx.scale(dpr, dpr);
+
+            const w = rect.width;
+            const h = 160;
+
+            const counts = {
+                ok: (state.results || []).filter(r=>r.tag==='ok').length,
+                warn: (state.results || []).filter(r=>r.tag==='warn').length,
+                amb: (state.results || []).filter(r=>r.tag==='amb').length,
+                err: (state.results || []).filter(r=>r.tag==='err').length
+            };
+            const items = [
+                { key:'ok', label:'Aptos', value:counts.ok, color:'#10b981' },
+                { key:'warn', label:'Inaptos', value:counts.warn, color:'#ef4444' },
+                { key:'amb', label:'Ambíguos', value:counts.amb, color:'#8b5cf6' },
+                { key:'err', label:'Não Localizados', value:counts.err, color:'#3b82f6' },
+            ];
+
+            ctx.clearRect(0,0,w,h);
+
+            // background
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0,0,w,h);
+
+            const max = Math.max(1, ...items.map(x=>x.value));
+            const pad = 18;
+            const barW = (w - pad*2) / items.length - 14;
+            const baseY = h - 36;
+            const chartH = h - 64;
+
+            ctx.font = '12px Inter, system-ui, Arial';
+            ctx.fillStyle = '#334155';
+            ctx.fillText('Contagem', pad, 18);
+
+            items.forEach((it, i) => {
+                const x = pad + i * (barW + 14) + 7;
+                const bh = Math.round((it.value / max) * chartH);
+                const y = baseY - bh;
+
+                ctx.fillStyle = it.color;
+                ctx.fillRect(x, y, barW, bh);
+
+                ctx.fillStyle = '#0f172a';
+                ctx.font = '800 12px Inter, system-ui, Arial';
+                ctx.fillText(String(it.value), x, y - 6);
+
+                ctx.fillStyle = '#64748b';
+                ctx.font = '800 10px Inter, system-ui, Arial';
+                ctx.fillText(it.label, x, baseY + 18);
+            });
+        }
+
+        // Hook: sempre que exibir resultados, atualiza dashboard
+        const _displayResultsOriginal = displayResults;
+        displayResults = function(){
+            _displayResultsOriginal();
+            // tenta enriquecer treinamentos se tiver cache
+            enrichResultsWithTrainings(state.auditCache && state.auditCache.trainingMap);
+            state.auditId = state.auditId || computeAuditId();
+            state.reviewHistory = Array.isArray(state.reviewHistory) && state.reviewHistory.length ? state.reviewHistory : loadReviewHistory(state.auditId);
+            document.getElementById('dash-audit-id').textContent = state.auditId || '—';
+            refreshDashboard();
+        };
+
+        // Hook: quando salvar revisão, registrar evento
+        const _saveReviewOriginal = saveReview;
+        saveReview = function(){
+            const beforeKey = state._editingRowKey;
+            const beforeRow = (state.results||[]).find(x => x._rowKey === beforeKey);
+            const fromLabel = beforeRow ? (beforeRow.status || tagToLabel(beforeRow.tag)) : '—';
+            _saveReviewOriginal();
+            const afterRow = (state.results||[]).find(x => x._rowKey === beforeKey);
+            const toLabel = afterRow ? (afterRow.status || tagToLabel(afterRow.tag)) : '—';
+            const just = (afterRow && afterRow.justificativa && afterRow._manual) ? afterRow.justificativa : '';
+            if (afterRow){
+                pushReviewEvent({ at: new Date().toISOString(), login: afterRow.login, action: 'Salvar', from: fromLabel, to: toLabel, just });
+            }
+        };
+
+        // Hook: quando remover revisão, registrar evento
+        const _removeReviewOriginal = removeReview;
+        removeReview = function(){
+            const beforeKey = state._editingRowKey;
+            const beforeRow = (state.results||[]).find(x => x._rowKey === beforeKey);
+            const fromLabel = beforeRow ? (beforeRow.status || tagToLabel(beforeRow.tag)) : '—';
+            _removeReviewOriginal();
+            if (beforeRow){
+                pushReviewEvent({ at: new Date().toISOString(), login: beforeRow.login, action: 'Remover', from: fromLabel, to: 'Auto', just: 'Remoção de decisão manual (volta ao automático).' });
+            }
+        };
+
+        // Re-render chart on resize
+        window.addEventListener('resize', () => {
+            if (!document.getElementById('result-view').classList.contains('hidden')) drawStatusChart();
+        });
+
+
+// Force initial view to Setup (prevents result blocks from appearing before processing)
+try{ showSetupView(); }catch(_){} 
+try{ enforceSetupOnlyUI(); }catch(_){}
+// --- HARD GUARD: never show result-only blocks before processing ---
+        function restoreResultsUI(){
+            try{
+                // Unhide blocks that may have been hidden during PRE mode
+                const unhideClosestCard = (id) => {
+                    const el = document.getElementById(id);
+                    if(!el) return;
+                    const card = el.closest('.bg-white') || el.closest('.rounded-3xl') || el.closest('section') || el.parentElement;
+                    if(card){ card.classList.remove('hidden'); card.style.display=''; }
+                };
+                unhideClosestCard('filter-status-ss');
+                unhideClosestCard('filter-status-sistema');
+                unhideClosestCard('single-input');
+
+                // table
+                const tbody = document.getElementById('result-tbody');
+                if(tbody){
+                    const tableWrap = tbody.closest('.bg-white') || tbody.closest('div');
+                    if(tableWrap){ tableWrap.classList.remove('hidden'); tableWrap.style.display=''; }
+                }
+
+                // export buttons
+                document.querySelectorAll('button').forEach(btn=>{
+                    const t=(btn.textContent||'').trim();
+                    if(t==='Exportar CSV' || t==='Exportar Histórico (CSV)' || t==='Imprimir / PDF'){
+                        const wrap = btn.closest('div');
+                        if(wrap){ wrap.classList.remove('hidden'); wrap.style.display=''; }
+                    }
+                });
+            }catch(e){}
+        }
+
+        function enforceSetupOnlyUI(){
+            try{
+                const processed = !!state.auditProcessed;
+                if(processed) return;
+                // Always hide result-view wrapper
+                const rv = document.getElementById('result-view');
+                if(rv){ rv.classList.add('hidden'); rv.style.display='none'; }
+                // Hide leaked blocks (in case of broken DOM nesting)
+                const hideClosestCard = (id) => {
+                    const el = document.getElementById(id);
+                    if(!el) return;
+                    const card = el.closest('.bg-white') || el.closest('.rounded-3xl') || el.closest('section') || el.parentElement;
+                    if(card){ card.classList.add('hidden'); card.style.display='none'; }
+                };
+                hideClosestCard('filter-status-ss');
+                hideClosestCard('filter-status-sistema');
+                hideClosestCard('single-input');
+                // table / export area
+                const tbody = document.getElementById('result-tbody');
+                if(tbody){
+                    const tableWrap = tbody.closest('.bg-white') || tbody.closest('div');
+                    if(tableWrap){ tableWrap.classList.add('hidden'); tableWrap.style.display='none'; }
+                }
+                // export buttons (by button text)
+                document.querySelectorAll('button').forEach(btn=>{
+                    const t=(btn.textContent||'').trim();
+                    if(t==='Exportar CSV' || t==='Exportar Histórico (CSV)' || t==='Imprimir / PDF'){
+                        const wrap = btn.closest('div');
+                        if(wrap){ wrap.classList.add('hidden'); wrap.style.display='none'; }
+                    }
+                });
+            }catch(e){}
+        }
+
+</script>
+<!-- NOTE: Removed external /index.tsx to keep this app fully file:// compatible -->
+</body>
+</html>
