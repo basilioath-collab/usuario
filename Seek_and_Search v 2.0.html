@@ -22,15 +22,115 @@
     </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+        :root {
+            --premium-blue: #2563eb;
+            --premium-indigo: #4f46e5;
+            --premium-ink: #0f172a;
+            --premium-muted: #64748b;
+        }
         body { 
-            background-color: #f8fafc; 
-            color: #0f172a; 
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at top left, rgba(37, 99, 235, 0.18), transparent 34rem),
+                radial-gradient(circle at 85% 8%, rgba(79, 70, 229, 0.14), transparent 26rem),
+                linear-gradient(135deg, #f8fafc 0%, #eef4ff 45%, #f8fafc 100%);
+            color: var(--premium-ink); 
             font-family: 'Inter', sans-serif; 
         }
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background-image:
+                linear-gradient(rgba(15, 23, 42, 0.035) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(15, 23, 42, 0.035) 1px, transparent 1px);
+            background-size: 44px 44px;
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,.55), transparent 62%);
+        }
+        .premium-header {
+            position: relative;
+            overflow: hidden;
+            padding: 1.5rem;
+            border: 1px solid rgba(255,255,255,.72);
+            border-radius: 2rem;
+            background: linear-gradient(135deg, rgba(255,255,255,.92), rgba(239,246,255,.78));
+            box-shadow: 0 24px 70px rgba(15, 23, 42, 0.10);
+            backdrop-filter: blur(18px);
+        }
+        .premium-header::after {
+            content: "";
+            position: absolute;
+            width: 16rem;
+            height: 16rem;
+            right: -5rem;
+            top: -7rem;
+            border-radius: 999px;
+            background: linear-gradient(135deg, rgba(37,99,235,.22), rgba(14,165,233,.08));
+            z-index: 0;
+        }
+        .premium-header > * {
+            position: relative;
+            z-index: 1;
+        }
+        .brand-mark {
+            background: linear-gradient(135deg, var(--premium-blue), var(--premium-indigo));
+            box-shadow: 0 18px 35px rgba(37, 99, 235, .28);
+        }
         .glass-panel { 
-            background: #ffffff; 
-            border: 1px solid #e2e8f0; 
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+            position: relative;
+            overflow: hidden;
+            background: rgba(255,255,255,.88); 
+            border: 1px solid rgba(255,255,255,.86); 
+            box-shadow: 0 20px 55px rgba(15, 23, 42, 0.09);
+            backdrop-filter: blur(16px);
+            transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+        }
+        .glass-panel::before {
+            content: "";
+            position: absolute;
+            inset: 0 0 auto 0;
+            height: 4px;
+            background: linear-gradient(90deg, #2563eb, #06b6d4, #8b5cf6);
+        }
+        .glass-panel:hover {
+            transform: translateY(-4px);
+            border-color: rgba(37, 99, 235, .25);
+            box-shadow: 0 28px 75px rgba(37, 99, 235, 0.14);
+        }
+        .upload-dropzone {
+            background: linear-gradient(180deg, rgba(248,250,252,.92), rgba(239,246,255,.82));
+            border-color: rgba(148,163,184,.42) !important;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.85);
+        }
+        .upload-dropzone:hover {
+            background: linear-gradient(180deg, rgba(239,246,255,.98), rgba(224,242,254,.9));
+            border-color: rgba(37, 99, 235, .55) !important;
+            transform: scale(1.01);
+        }
+        .premium-button {
+            background: linear-gradient(135deg, #2563eb, #4f46e5);
+            box-shadow: 0 18px 45px rgba(37, 99, 235, .28);
+        }
+        .premium-button:hover {
+            box-shadow: 0 24px 60px rgba(37, 99, 235, .36);
+        }
+        #card-total, #card-ok, #card-warn, #card-amb, #card-err, #ss-dashboard > div {
+            box-shadow: 0 18px 45px rgba(15, 23, 42, .07);
+            backdrop-filter: blur(14px);
+        }
+        #card-total, #card-ok, #card-warn, #card-amb, #card-err {
+            position: relative;
+            overflow: hidden;
+        }
+        #card-total::after, #card-ok::after, #card-warn::after, #card-amb::after, #card-err::after {
+            content: "";
+            position: absolute;
+            inset: auto -2rem -2.5rem auto;
+            width: 7rem;
+            height: 7rem;
+            border-radius: 999px;
+            background: rgba(255,255,255,.5);
         }
         .custom-scrollbar::-webkit-scrollbar { height: 6px; width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
@@ -59,21 +159,21 @@
 </style>
 <!-- NOTE: Removed external /index.css to keep this app fully file:// compatible -->
 </head>
-<body class="p-6 lg:p-12 max-w-[1400px] mx-auto pb-40">
+<body class="p-4 sm:p-6 lg:p-10 max-w-[1400px] mx-auto pb-40">
 
     <!-- Header -->
-    <header class="mb-12 flex flex-col md:flex-row items-center justify-between gap-6">
+    <header class="premium-header mb-12 flex flex-col md:flex-row items-center justify-between gap-6">
         <div>
             <div class="flex items-center gap-3">
-                <div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg">
+                <div class="brand-mark w-12 h-12 rounded-2xl flex items-center justify-center text-white shadow-lg">
                     <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                 </div>
-                <h1 class="text-3xl font-black text-slate-900 tracking-tight">Seek and <span class="text-primary italic">Search</span></h1>
+                <h1 class="text-3xl sm:text-4xl font-black text-slate-950 tracking-tight">Seek and <span class="text-primary italic">Search</span></h1>
             </div>
-            <p class="text-slate-400 text-sm font-medium mt-1">Controle de Cadastro</p>
+            <p class="text-slate-500 text-sm font-semibold mt-2 max-w-xl">Auditoria visual de cadastros, treinamentos e usuários com experiência premium e processamento local.</p>
         </div>
         <div id="header-actions" class="hidden">
-            <button onclick="resetApp()" class="px-6 py-2.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-bold hover:bg-slate-200 transition-all uppercase tracking-widest">Nova Auditoria</button>
+            <button onclick="resetApp()" class="px-6 py-3 rounded-2xl bg-white/80 text-slate-700 text-xs font-black hover:bg-white transition-all uppercase tracking-widest border border-white/80 shadow-sm">Nova Auditoria</button>
         </div>
     </header>
 
@@ -91,7 +191,7 @@
                     <p class="text-xs text-slate-500 mt-1">Nomes oficiais da matriz de pessoal.</p>
                 </div>
                 <div id="container-file-a" class="flex-grow flex flex-col gap-4">
-                    <div onclick="document.getElementById('input-file-a').click()" class="flex-grow border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center p-8 gap-3 cursor-pointer hover:bg-slate-50 hover:border-primary/50 transition-all">
+                    <div onclick="document.getElementById('input-file-a').click()" class="upload-dropzone flex-grow border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center p-8 gap-3 cursor-pointer hover:bg-slate-50 hover:border-primary/50 transition-all">
                         <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
                         </div>
@@ -113,7 +213,7 @@
                 <div id="container-files-b" class="flex-grow flex flex-col gap-3 overflow-y-auto max-h-[300px] custom-scrollbar pr-1">
                     <!-- Dynamic List -->
                 </div>
-                <button onclick="document.getElementById('input-file-b').click()" class="mt-4 w-full py-3 border-2 border-dashed border-slate-200 rounded-xl text-[10px] font-bold text-slate-400 uppercase tracking-widest hover:border-primary hover:text-primary transition-all">+ Adicionar Procedimento</button>
+                <button onclick="document.getElementById('input-file-b').click()" class="upload-dropzone mt-4 w-full py-3 border-2 border-dashed border-slate-200 rounded-xl text-[10px] font-black text-slate-500 uppercase tracking-widest hover:border-primary hover:text-primary transition-all">+ Adicionar Procedimento</button>
                 <input id="input-file-b" type="file" accept=".csv,.txt,.tsv,.xlsx,.xls,.xlsm,.xlsb,.ods" class="hidden" onchange="handleFileChange(event, 'B')">
             </div>
 
@@ -127,7 +227,7 @@
                     <p class="text-xs text-slate-500 mt-1">Usuários/Logins para verificação.</p>
                 </div>
                 <div id="container-file-c" class="flex-grow flex flex-col gap-4">
-                    <div onclick="document.getElementById('input-file-c').click()" class="flex-grow border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center p-8 gap-3 cursor-pointer hover:bg-slate-50 hover:border-primary/50 transition-all">
+                    <div onclick="document.getElementById('input-file-c').click()" class="upload-dropzone flex-grow border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center p-8 gap-3 cursor-pointer hover:bg-slate-50 hover:border-primary/50 transition-all">
                         <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
                             <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
                         </div>
@@ -139,7 +239,7 @@
         </div>
 
         <div class="flex justify-center pt-8">
-            <button id="btn-process" onclick="processAudit()" disabled class="px-20 py-5 bg-primary text-white font-black rounded-3xl shadow-2xl shadow-primary/30 hover:scale-105 active:scale-95 transition-all disabled:opacity-20 disabled:grayscale">
+            <button id="btn-process" onclick="processAudit()" disabled class="premium-button px-20 py-5 text-white font-black rounded-3xl hover:scale-105 active:scale-95 transition-all disabled:opacity-30 disabled:grayscale">
                 PROCESSAR AUDITORIA
             </button>
         </div>
@@ -147,7 +247,7 @@
         <div class="flex flex-col items-center justify-center gap-4 pt-6">
             <div class="text-[10px] font-black text-slate-400 uppercase tracking-widest">ou</div>
             <button type="button" onclick="document.getElementById('input-audit-json-setup').click()"
-                class="px-10 py-4 bg-slate-900 text-white font-black rounded-3xl shadow-xl hover:bg-slate-800 transition-all uppercase tracking-widest text-xs">
+                class="px-10 py-4 bg-slate-950 text-white font-black rounded-3xl shadow-xl hover:bg-slate-800 transition-all uppercase tracking-widest text-xs border border-white/10">
                 Carregar Auditoria (JSON)
             </button>
             <input id="input-audit-json-setup" type="file" accept=".json" class="hidden" onchange="handleAuditJsonUpload(event)">
@@ -456,6 +556,10 @@
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;')
                 .replace(/'/g, '&#39;');
+        }
+
+        function jsStringLiteral(str) {
+            return JSON.stringify((str ?? '').toString());
         }
 
         function toKey(s) {
@@ -1176,7 +1280,7 @@ if (target === 'A') {
             container.innerHTML = `
                 <div class="animate-fade space-y-4">
                     <div class="p-3 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-between">
-                        <span class="text-xs font-bold text-blue-700 truncate max-w-[150px]">${data.fileName}</span>
+                        <span class="text-xs font-bold text-blue-700 truncate max-w-[150px]">${escapeHtml(data.fileName)}</span>
                         <button type="button" onclick="removeFile('${type}')" class="text-slate-400 hover:text-red-500">✕</button>
                     </div>
 
@@ -1191,7 +1295,7 @@ if (target === 'A') {
                             <select onchange="updateStatusIdx('SYS', this.value)"
                                     class="w-full p-2.5 rounded-lg border border-slate-200 text-xs bg-slate-50 focus:ring-2 focus:ring-primary/20 outline-none">
                                 <option value="">—</option>
-                                ${data.headers.map((h, i) => `<option value="${i}" ${String(state.fileC.statusSysIdx||'')===String(i)?'selected':''}>${h || `Coluna ${i+1}`}</option>`).join('')}
+                                ${data.headers.map((h, i) => `<option value="${i}" ${String(state.fileC.statusSysIdx||'')===String(i)?'selected':''}>${escapeHtml(h || `Coluna ${i+1}`)}</option>`).join('')}
                             </select>
                         </div>
                         ` : ``}
@@ -1216,7 +1320,7 @@ if (target === 'A') {
             container.innerHTML = state.filesB.map(f => `
                 <div class="p-3 rounded-xl bg-white border border-slate-200 flex flex-col gap-2 animate-fade">
                     <div class="flex items-center justify-between">
-                        <span class="text-[10px] font-bold text-slate-700 truncate max-w-[160px]">${f.fileName}</span>
+                        <span class="text-[10px] font-bold text-slate-700 truncate max-w-[160px]">${escapeHtml(f.fileName)}</span>
                         <button type="button" onclick="removeFileB(${f.id})" class="text-slate-300 hover:text-red-500">✕</button>
                     </div>
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Coluna(s) de Nome (Treinamento)</label>
@@ -1264,7 +1368,7 @@ if (target === 'A') {
             const inp = document.getElementById(`input-file-${type.toLowerCase()}`);
             if (inp) inp.value = '';
             document.getElementById(`container-file-${type.toLowerCase()}`).innerHTML = `
-                <div onclick="document.getElementById('input-file-${type.toLowerCase()}').click()" class="flex-grow border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center p-8 gap-3 cursor-pointer hover:bg-slate-50 hover:border-primary/50 transition-all">
+                <div onclick="document.getElementById('input-file-${type.toLowerCase()}').click()" class="upload-dropzone flex-grow border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center p-8 gap-3 cursor-pointer hover:bg-slate-50 hover:border-primary/50 transition-all">
                     <div class="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-400">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
                     </div>
@@ -1445,25 +1549,25 @@ if (target === 'A') {
 
             tbody.innerHTML = filtered.map(row => `
                 <tr class="hover:bg-slate-50/50 transition-colors">
-                    <td class="p-6 font-mono text-slate-500 font-bold">${row.login}</td>
-                    <td class="p-6 font-extrabold text-slate-900">${row.nomeMapeado}</td>
-                    <td class="p-6 text-xs font-bold text-slate-600">${row.statusSS || '—'}</td>
-                    <td class="p-6 text-xs font-bold text-slate-600">${row.statusSistema || '—'}</td>
+                    <td class="p-6 font-mono text-slate-500 font-bold">${escapeHtml(row.login)}</td>
+                    <td class="p-6 font-extrabold text-slate-900">${escapeHtml(row.nomeMapeado)}</td>
+                    <td class="p-6 text-xs font-bold text-slate-600">${escapeHtml(row.statusSS || '—')}</td>
+                    <td class="p-6 text-xs font-bold text-slate-600">${escapeHtml(row.statusSistema || '—')}</td>
                     <td class="p-6">
                         <span class="status-pill text-[9px] font-black uppercase tracking-widest ${row.tag === 'ok' ? 'bg-emerald-600 text-white' : (row.tag === 'warn' ? 'bg-amber-500 text-white' : (row.tag === 'amb' ? 'bg-purple-600 text-white' : 'bg-rose-600 text-white'))} shadow-sm">
-                            ${row.status}
+                            ${escapeHtml(row.status)}
                         </span>
                         ${row._manual ? '<span class="ml-2 inline-flex items-center px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-slate-900 text-white">Manual</span>' : ''}
                     </td>
                     <td class="p-6">
                         <div class="flex items-start gap-2">
                             <div class="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${row.tag === 'ok' ? 'bg-emerald-500' : (row.tag === 'warn' ? 'bg-amber-500' : (row.tag === 'amb' ? 'bg-purple-500' : 'bg-rose-500'))}"></div>
-                            <span class="text-[11px] font-medium text-slate-600 leading-relaxed">${row.justificativa}</span>
+                            <span class="text-[11px] font-medium text-slate-600 leading-relaxed">${escapeHtml(row.justificativa)}</span>
                             
                         </div>
                     </td>
                     <td class="p-6">
-                        <button onclick="openReviewModal('${row._rowKey}')" class="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-black hover:bg-slate-100 transition-all">
+                        <button onclick="openReviewModal(${escapeHtml(jsStringLiteral(row._rowKey))})" class="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-black hover:bg-slate-100 transition-all">
                             ${row._manual ? "Editar" : "Revisar"}
                         </button>
                     </td>
