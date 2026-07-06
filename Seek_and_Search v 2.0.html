@@ -458,6 +458,10 @@
                 .replace(/'/g, '&#39;');
         }
 
+        function jsStringLiteral(str) {
+            return JSON.stringify((str ?? '').toString());
+        }
+
         function toKey(s) {
             return (s || "").toString().normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
         }
@@ -1176,7 +1180,7 @@ if (target === 'A') {
             container.innerHTML = `
                 <div class="animate-fade space-y-4">
                     <div class="p-3 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-between">
-                        <span class="text-xs font-bold text-blue-700 truncate max-w-[150px]">${data.fileName}</span>
+                        <span class="text-xs font-bold text-blue-700 truncate max-w-[150px]">${escapeHtml(data.fileName)}</span>
                         <button type="button" onclick="removeFile('${type}')" class="text-slate-400 hover:text-red-500">✕</button>
                     </div>
 
@@ -1191,7 +1195,7 @@ if (target === 'A') {
                             <select onchange="updateStatusIdx('SYS', this.value)"
                                     class="w-full p-2.5 rounded-lg border border-slate-200 text-xs bg-slate-50 focus:ring-2 focus:ring-primary/20 outline-none">
                                 <option value="">—</option>
-                                ${data.headers.map((h, i) => `<option value="${i}" ${String(state.fileC.statusSysIdx||'')===String(i)?'selected':''}>${h || `Coluna ${i+1}`}</option>`).join('')}
+                                ${data.headers.map((h, i) => `<option value="${i}" ${String(state.fileC.statusSysIdx||'')===String(i)?'selected':''}>${escapeHtml(h || `Coluna ${i+1}`)}</option>`).join('')}
                             </select>
                         </div>
                         ` : ``}
@@ -1216,7 +1220,7 @@ if (target === 'A') {
             container.innerHTML = state.filesB.map(f => `
                 <div class="p-3 rounded-xl bg-white border border-slate-200 flex flex-col gap-2 animate-fade">
                     <div class="flex items-center justify-between">
-                        <span class="text-[10px] font-bold text-slate-700 truncate max-w-[160px]">${f.fileName}</span>
+                        <span class="text-[10px] font-bold text-slate-700 truncate max-w-[160px]">${escapeHtml(f.fileName)}</span>
                         <button type="button" onclick="removeFileB(${f.id})" class="text-slate-300 hover:text-red-500">✕</button>
                     </div>
                     <label class="text-[10px] font-black text-slate-400 uppercase tracking-tighter">Coluna(s) de Nome (Treinamento)</label>
@@ -1445,25 +1449,25 @@ if (target === 'A') {
 
             tbody.innerHTML = filtered.map(row => `
                 <tr class="hover:bg-slate-50/50 transition-colors">
-                    <td class="p-6 font-mono text-slate-500 font-bold">${row.login}</td>
-                    <td class="p-6 font-extrabold text-slate-900">${row.nomeMapeado}</td>
-                    <td class="p-6 text-xs font-bold text-slate-600">${row.statusSS || '—'}</td>
-                    <td class="p-6 text-xs font-bold text-slate-600">${row.statusSistema || '—'}</td>
+                    <td class="p-6 font-mono text-slate-500 font-bold">${escapeHtml(row.login)}</td>
+                    <td class="p-6 font-extrabold text-slate-900">${escapeHtml(row.nomeMapeado)}</td>
+                    <td class="p-6 text-xs font-bold text-slate-600">${escapeHtml(row.statusSS || '—')}</td>
+                    <td class="p-6 text-xs font-bold text-slate-600">${escapeHtml(row.statusSistema || '—')}</td>
                     <td class="p-6">
                         <span class="status-pill text-[9px] font-black uppercase tracking-widest ${row.tag === 'ok' ? 'bg-emerald-600 text-white' : (row.tag === 'warn' ? 'bg-amber-500 text-white' : (row.tag === 'amb' ? 'bg-purple-600 text-white' : 'bg-rose-600 text-white'))} shadow-sm">
-                            ${row.status}
+                            ${escapeHtml(row.status)}
                         </span>
                         ${row._manual ? '<span class="ml-2 inline-flex items-center px-2 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest bg-slate-900 text-white">Manual</span>' : ''}
                     </td>
                     <td class="p-6">
                         <div class="flex items-start gap-2">
                             <div class="mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${row.tag === 'ok' ? 'bg-emerald-500' : (row.tag === 'warn' ? 'bg-amber-500' : (row.tag === 'amb' ? 'bg-purple-500' : 'bg-rose-500'))}"></div>
-                            <span class="text-[11px] font-medium text-slate-600 leading-relaxed">${row.justificativa}</span>
+                            <span class="text-[11px] font-medium text-slate-600 leading-relaxed">${escapeHtml(row.justificativa)}</span>
                             
                         </div>
                     </td>
                     <td class="p-6">
-                        <button onclick="openReviewModal('${row._rowKey}')" class="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-black hover:bg-slate-100 transition-all">
+                        <button onclick="openReviewModal(${escapeHtml(jsStringLiteral(row._rowKey))})" class="px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 text-xs font-black hover:bg-slate-100 transition-all">
                             ${row._manual ? "Editar" : "Revisar"}
                         </button>
                     </td>
